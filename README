@@ -1,0 +1,41 @@
+fastIce is a web framework writed in php and who use the very fast nosql database, redis
+
+goal of fastIce is to be FAST and easy to use, code as small as possible, optimised at all the points and 100% non object,
+second objective of fastIce is to let your coding style as this, there is NO contraint, you are free,
+there is some nice tools included to help you write what you mean easilly and fast,
+
+code is 100% code and design 100% design, fastIce will not bloat you with the other hand work !
+
+fastIce include a simple and powerfull template engine, easy like hell, you only need to know the single keyword char,
+there is NO specific langage who try to remake php like smarty does, you can write into html/php directly.
+all is designed to separate really code and design, the graphist can never show a single php line !
+
+like the page template engine, there is a simple powerfull data template engine,
+it help you fill a design with data take from database, it take data, optionaly let you manage them with callback function,
+and fill the small design made by your graphist
+
+exemple the graphist made a design for one product, you launch a small and easy function,
+and data of N product will be taked, design will be filled N times and out data will be returned, ready to be echo
+so, code and design are 100% separated too
+
+(specific data design fill fuction are only from redis from now but there are generic and easy function too :)
+
+page designs are skeleton based, page or page part can be cut in any subpart as you need, with a complete hyerarchical tree
+part can be common to some pages like header, footer, or very specific at a page,
+all page part can be saved into cache for very fast access, you can cache a complete page less a small part, this small part will be the only thing always executed, you can really manage what is really dynamic !
+
+each page get his proper cache, that mean all part including common one will be saved individually in cache, so a complete dynamic php code, who made a diferent output in each pages, like a menu, will be saved by page and if content must be fixed, never need to be reexecuted
+
+fastIce include a powerfull and simple plugin system, fully integrated into the template engine, with a really simple call convention
+on one hand graphist will call plugin directly from html with the same syntax as a page part, except that there is arg more, on the other hand, the coder will call plugin directly in php or javascript
+plugin can done ALL you need, from get and show meteo, to a draw a menu, or include in place editing of page part, this is full php code with all the fastIce tools usable
+
+fastIce let you write head, body, js, title, meta etc ... from anywhere, footer can write title ! these info will be cached too for a really easy to use and powerfull dev system
+
+on a very lightweight server, it assume render a page in 1ms, and less than 2ms for a 20ko html data page
+
+and all of this in only 400 php lines.
+
+stay tuned ! it's only an alpha, and sorry for my bad english, i'm french ^^
+
+r043v in 2k11!

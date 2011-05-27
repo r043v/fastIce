@@ -1,6 +1,6 @@
 fastIce is a web framework writed in php and who use the very fast nosql database, redis
 
-goal of fastIce is to be FAST and easy to use, code as small as possible, optimised at all the points and 100% non object,
+goal of fastIce is to be FAST and easy to use, code is small as possible, optimised at all the points and 100% non object,
 second objective of fastIce is to let your coding style as this, there is NO contraint, you are free,
 there is some nice tools included to help you write what you mean easilly and fast,
 

@@ -6,19 +6,14 @@ there is some nice tools included to help you write what you mean easilly and fa
 
 code is 100% code and design 100% design, fastIce will not bloat you with the other hand work !
 
-fastIce include a simple and powerfull template engine, easy like hell, you only need to know the single keyword char,
-there is NO specific langage who try to remake php like smarty does, you can write into html/php directly.
+fastIce include a simple and powerfull template engine, easy like hell, you only need to know the single keyword char, there is NO specific langage who try to remake php like smarty does, you can write into html/php directly.
 all is designed to separate really code and design, the graphist can never show a single php line !
 
-like the page template engine, there is a simple powerfull data template engine,
-it help you fill a design with data take from database, it take data, optionaly let you manage them with callback function,
-and fill the small design made by your graphist
+like the page template engine, there is a simple powerfull data template engine, it help you fill a design with data take from database, it take data, optionaly let you manage them with callback function, and fill the small design made by your graphist
 
-exemple the graphist made a design for one product, you launch a small and easy function,
-and data of N product will be taked, design will be filled N times and out data will be returned, ready to be echo
-so, code and design are 100% separated too
+exemple the graphist made a design for one product, you launch a small and easy function, data of N product will be taked, design will be filled N times and out data will be returned, ready to be echo, so, code and design are 100% separated too
 
-(specific data design fill fuction are only from redis from now but there are generic and easy function too :)
+(specific data design fill function are only from redis from now but there are generic and easy function too :)
 
 page designs are skeleton based, page or page part can be cut in any subpart as you need, with a complete hyerarchical tree
 part can be common to some pages like header, footer, or very specific at a page,
@@ -30,7 +25,7 @@ fastIce include a powerfull and simple plugin system, fully integrated into the 
 on one hand graphist will call plugin directly from html with the same syntax as a page part, except that there is arg more, on the other hand, the coder will call plugin directly in php or javascript
 plugin can done ALL you need, from get and show meteo, to a draw a menu, or include in place editing of page part, this is full php code with all the fastIce tools usable
 
-fastIce let you write head, body, js, title, meta etc ... from anywhere, footer can write title ! these info will be cached too for a really easy to use and powerfull dev system
+fastIce let you write head, body, js, title, meta etc ... from anywhere, footer can write title or insert files in head ! these info will be cached too for a really easy to use and powerfull dev system
 
 on a very lightweight server, it assume render a page in 1ms, and less than 2ms for a 20ko html data page
 

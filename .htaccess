@@ -1,20 +1,20 @@
 RewriteEngine On
 # direct page, default langage
-RewriteRule ^([^/]+).html$ index.php?p=$1 [L,QSA]
+RewriteRule ^([^/]+).htm$ index.php?p=$1 [L,QSA]
 RewriteRule ^([^/\.]+)$ index.php?p=$1 [L,QSA]
 
 # level 2 direct page, default langage
-RewriteRule ^([^/]{3,})/([^/]+).html$ index.php?p=$2&path=$1 [L,QSA]
+RewriteRule ^([^/]{3,})/([^/]+).htm$ index.php?p=$2&path=$1 [L,QSA]
 RewriteRule ^([^/]{3,})/([^/\.]+)$ index.php?p=$2&path=$1 [L,QSA]
 
 # page on dir level n, path support and default langage
-RewriteRule ^([^/]{3,})/(.+)/([^/]+).html$ index.php?p=$3&path=$1/$2 [L,QSA]
+RewriteRule ^([^/]{3,})/(.+)/([^/]+).htm$ index.php?p=$3&path=$1/$2 [L,QSA]
 RewriteRule ^([^/]{3,})/(.+)/([^/\.]+)$ index.php?p=$3&path=$1/$2 [L,QSA]
 
 # page on dir level 2, langage support
-RewriteRule ^([^/]{2})/([^/]+).html$ index.php?p=$2&lang=$1 [L,QSA]
+RewriteRule ^([^/]{2})/([^/]+).htm$ index.php?p=$2&lang=$1 [L,QSA]
 RewriteRule ^([^/]{2})/([^/\.]+)$ index.php?p=$2&lang=$1 [L,QSA]
 
 # page on dir level n, langage and path support
-RewriteRule ^([^/]{2})/(.+)/([^/]+).html$ index.php?p=$3&lang=$1&path=$2 [L,QSA]
+RewriteRule ^([^/]{2})/(.+)/([^/]+).htm$ index.php?p=$3&lang=$1&path=$2 [L,QSA]
 RewriteRule ^([^/]{2})/(.+)/([^/\.]+)$ index.php?p=$3&lang=$1&path=$2 [L,QSA]

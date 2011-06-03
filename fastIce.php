@@ -10,31 +10,19 @@
 ** *
 * ** *** */
 
+/*	0.5.7 changelog
+
+	* add addToRenderOnce/includeJs/includeCss functions
+	    addToRenderOnce will include once some data into render, includeJs and includeCss use it to include once js and css files into the head.
+	* adding check for user loged, if the case, automaticaly delete the page cache and caching nothing else of ini file and skeleton
+	* extract config into a dedicated config.php file, only for easy update of the framework.
+*/
+
 // global config .......................................
 
-define ('template','template');
-
-define('redisServer','127.0.0.1');
-define('redisPrefix','exemple');
-
-define('site_url','/');
-define('site_full_url','http://exemple.com/');
-define('mail_domain','exemple.com');
-
-define('defaultTitle','');
-define('defaultKeywords','');
-define('defaultDescription','');
-define('defaultMeta','');
-
-define('defaultLangage','fr');
-setlocale (LC_ALL, 'fr_FR.utf8','fra');
-
-ini_set('display_errors', 1);
-//set_time_limit(0);
+include 'config.php';
 
 /* ********************* **/
-
-define ('noFollowKeyWord','[$$]');
 
 global $nofollow,$nodesigncache,$norendercache,$renderInclude,$redis,$global_current_file,$fnc,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlpath,$seedKey;
 $redis = new Redis(); if(!$redis->connect(redisServer)) die('cannot rape the database ...');
@@ -71,6 +59,22 @@ global $renderWords; $renderWords = array('head','js','jquery','title','meta','s
 function addToHead($t){addToRender('head',$t);}function setHead($t){setRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}function setJs($t){setRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}function setJquery($t){setRender('jquery',$t);}$renderInclude['jquery']='';function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToStyle($t){addToRender('style',$t);}function setStyle($t){setRender('style',$t);}$renderInclude['style']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';function addToBody($t){addToRender('body',$t);}function setBody($t){setRender('body',$t);}$renderInclude['body']='';
 //foreach($renderWords as $word){ print('function addTo'.ucfirst($word).'($t){addToRender(\''.$word.'\',$t);}function set'.ucfirst($word).'($t){setRender(\''.$word.'\',$t);}$renderInclude[\''.$word.'\']=\'\';'); } die();
 
+global $filesinc; $filesinc = array();
+function addToRenderOnce($word,$txt)
+{	static $filesinc, $loaded = 0;
+	global $currentDesign;
+	if(!$loaded)
+	{	$filesinc = getDesignCache(':filesinc');
+		if($filesinc === false) $filesinc = array(); else $filesinc = unserialize($filesinc);
+		$loaded=1;
+	}
+
+	$key=md5($word.$txt); if(isset($filesinc[$key])) return; $filesinc[$key]=1;
+	setDesignCache(':filesinc',serialize($filesinc)); addToRender($word,$txt);
+}
+function includeJs($path){addToRenderOnce('head','<script type="text/javascript" src="'.site_url.$path.'"></script>');}
+function includeCss($path){addToRenderOnce('head','<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />');}
+
 function renderPage($url,$page)
 {	global $renderInclude, $design_cache, $canonicalurl,$currentLangage;
 	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];// else print ' title : '.$renderInclude['title'];
@@ -102,7 +106,7 @@ function showPage($key,$seed=1)
 	if($seed)
 	{	global $seedPath,$seedKey,$design_cache,$currentLangage,$urlpath; $seedPath=$urlpath.'/'.$key; $seedKey=$key;
 
-		if(isset($_GET['f5']))
+		if(isset($_GET['f5']) || isset($_SESSION['user']))
 		{ $redis->delete(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
 		} else if(isset($_GET['deleteCache'])){$cache = $redis->keys(redisPrefix.':designCache:*');foreach($cache as $c)$redis->delete($c);}
 
@@ -139,7 +143,7 @@ function showPage($key,$seed=1)
 
 	global $renderInclude;
 	// global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\''.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
-	$d=getDesignCache('head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;}
+	$d=getDesignCache('head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache('js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;}
 
 	//if($out && $out!='') $out = preg_replace_callback(includePattern,'showPage',$out); else $out = '';
 	if($out && $out!='')
@@ -157,7 +161,7 @@ function showPage($key,$seed=1)
 		}
 	} else $out = '';
 
-	if($seed && $need_fix_name) $out = str_replace(noFollowKeyWord,'§', $out);
+	if($seed && $need_fix_name) $out = str_replace('[$$]','§', $out);
 	$designPath = $dpath; $commonDesignPath = $cdpath;
 
 	return $out;
@@ -177,7 +181,7 @@ global $design_cache;
 function noDesignCache(){global $nodesigncache;$nodesigncache=1;}
 function setDesignCache($design,$content)
 {	global $nodesigncache,$seedPath,$designPath,$currentLangage,$redis;
-	if(!$nodesigncache)
+	if(!$nodesigncache && !isset($_SESSION['user']))
 	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
 
 	//	print ' put '.$designPath.'/'.$design.' in cache !!';
@@ -195,7 +199,7 @@ function getDesign($design)
 	global $nofollow,$last_design,$need_fix_name,$redis,$nodesigncache,$currentDesign; $nodesigncache=0; $currentDesign=$design;
 	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; }
 	if($design == 'folow'){   $nofollow=0; return ''; }
-	if($nofollow) { return noFollowKeyWord.$design.noFollowKeyWord; }
+	if($nofollow) { return '[$$]'.$design.'[$$]'; }
 	global $designPath,$commonDesignPath,$currentLangage;
 
 	if(false === strstr($design,'|'))

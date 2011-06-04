@@ -1,13 +1,13 @@
 <?php // fastIce global config
 
-define ('template','template');
+define ('template','mytemplate');
 
 define('redisServer','127.0.0.1');
 define('redisPrefix','laphrodite');
 
-define('site_url','/laphrodite/');
-define('site_full_url','http://rov.hopto.org/laphrodite/');
-define('mail_domain','rov.hopto.org');
+define('site_url','/'); // /subfolder/ can be used
+define('site_full_url','http://mysite.com/'); // if sub folder set to http://mysite.com/subfolder/
+define('mail_domain','mysite.com');
 
 define('defaultTitle','');
 define('defaultKeywords','');

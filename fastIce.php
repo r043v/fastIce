@@ -10,16 +10,6 @@
 ** *
 * ** *** */
 
-/*	0.5.7 changelog
-
-	* add addToRenderOnce/includeJs/includeCss functions
-	    addToRenderOnce will include once some data into render, includeJs and includeCss use it to include once js and css files into the head.
-	* adding check for user loged, if the case, automaticaly delete the page cache and caching nothing else of ini file and skeleton
-	* extract config into a dedicated config.php file, only for easy update of the framework.
-*/
-
-// global config .......................................
-
 include 'config.php';
 
 /* ********************* **/

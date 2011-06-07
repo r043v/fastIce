@@ -35,9 +35,6 @@ function getPageName(){global $seedKey;return $seedKey;}
 
 define ('site_full_path',dirname(__FILE__));
 define ('site_path',site_full_path.'/files');
-define ('common_path','common');
-define ('module_path','plugins');
-define ('design_path','constants.ini');
 
 $nofollow=0;$nodesigncache=0;$norendercache=0;$renderInclude=array();$global_current_file='';$fnc=array();$designPath='';$commonDesignPath='';
 /* additionnal keywords for render */
@@ -77,12 +74,8 @@ function renderPage($url,$page)
 }
 
 function get_include_contents($filename)
-{	if(is_file($filename))
-	{	//$start = microtime(true);
-		ob_start(); include ($filename); $contents = ob_get_contents(); ob_end_clean();
-		//print '<br>load '.$filename.' in '.((microtime(true)-$start)*1000);
-		return $contents;
-	} return false;
+{	if(!is_file($filename)) return false;
+	ob_start(); include ($filename); $contents = ob_get_contents(); ob_end_clean(); return $contents;
 }
 
 function showPage($key,$seed=1)
@@ -103,8 +96,7 @@ function showPage($key,$seed=1)
 		$design_cache = $redis->hgetall(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
 
 		if(!isset($design_cache['ini:loaded'])) // redis page info not set
-		{	//print '<br>loading ini';
-			$page_opt = array('loaded'=>1);
+		{	$page_opt = array('loaded'=>1);
 			$path = template.'/'.$key.'/'.$key.'.ini';
 			if(is_file($path)) $page_opt = array_merge(parse_ini_file($path),$page_opt);
 			$outarray = array(); foreach($page_opt as $name=>$value) $outarray['ini:'.$name] = $value;
@@ -119,11 +111,10 @@ function showPage($key,$seed=1)
 		if(!isset($design_cache['ini:meta'])) $design_cache['ini:meta'] = defaultMeta;
 
 		if(!isset($design_cache['ini:sk']))
-		{	//print '<br>loading skeleton';
-			$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
+		{	$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
 			if(is_file($path))
 			{	$out = file_get_contents($path); $redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,'ini:sk',$out);
-			} else $out = '<h3>page skeleton not found !</h3><br><b>'.$path.'</b>';
+			} else $out = '<h3>fastIce not configured !</h3><br>please have a look at config.php file, you got some info to give at the framework,<br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br>'.file_get_contents('http://fastice.tk/first.start.html');//<br>please have a look at config.php file, you got some info to give at the framework,<br><br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br><br>exemple file content :<br><br><i>&sect;header&sect;<br>&sect;content&sect;<br>&sect;footer&sect;</i><br><br>also you can put here all the html additional text you need, like all the template files, exemple :<br><br><i>&lt;html&gt;<br><bq>&sect;header&sect;<br><bq>&lt;body&gt;<br><bq><bq>&lt;div class="some-class"&gt;&sect;content&sect;&lt;/div&gt;<br>&sect;footer&sect;</bq><br>&lt;/body&gt;<br></bq>&lt;/html&gt;</bq></i><br><br>A good start is to come <a target="_blank" href="http://fastice.tk">on the framework homepage</a>';
 		} else $out = $design_cache['ini:sk'];
 	} else {
 		$global_current_file = $key;
@@ -135,7 +126,6 @@ function showPage($key,$seed=1)
 	// global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\''.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
 	$d=getDesignCache('head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache('js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;}
 
-	//if($out && $out!='') $out = preg_replace_callback(includePattern,'showPage',$out); else $out = '';
 	if($out && $out!='')
 	{	$offset=0;
 		for(;;)
@@ -173,9 +163,7 @@ function setDesignCache($design,$content)
 {	global $nodesigncache,$seedPath,$designPath,$currentLangage,$redis;
 	if(!$nodesigncache && !isset($_SESSION['user']))
 	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
-
-	//	print ' put '.$designPath.'/'.$design.' in cache !!';
-	}// else print ' no cache for '.$designPath.'/'.$design.' !!';
+	}
 }
 
 function getDesignCache($design)

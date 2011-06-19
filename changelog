@@ -4,8 +4,26 @@
 
 
 0.5.7 
-	* add addToRenderOnce/includeJs/includeCss functions
+	add addToRenderOnce/includeJs/includeCss functions
 	    addToRenderOnce will include once some data into render, includeJs and includeCss use it to include once js and css files into the head.
-	* adding check for user loged, if the case, automaticaly delete the page cache and caching nothing else of ini file and skeleton
-	* extract config into a dedicated config.php file, only for easy update of the framework.
-	
+	adding check for user loged, if the case, automaticaly delete the page cache and caching nothing else of ini file and skeleton
+	extract config into a dedicated config.php file, only for easy update of the framework.
+
+0.6
+	change use of render words, from nom you only need to put [head] at top start of your <head>, for simplicity and speed improvement,
+		the [head] render word will insert meta, title, keywords, description, javascript, jquery and style render words directly
+		so now, this render keywords cannot be put twice in the source like before, other render words still multiple usable.
+
+	now a not found skeleton file will use an internal html5 minimal one, define in config.php file.
+
+	showPage is renamed into parsePage and removed from the global api, now just call renderPage(name) to got your page,
+		renderPage take optionaly a second argument who's a last action routine, to launch just before the render final replace,
+		it can easily be some plugin call, for title management or in place editing routines,
+
+	add the jsmin php extension support, now a page who is completely in cache will get his javascript minified,
+
+	add insertJs/insertCss function to directly insert files content into the head
+
+	remove support for .html page extension, now page will not get any extension at all.
+
+	some other fix, it's a new branch :)

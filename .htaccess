@@ -1,20 +1,33 @@
+# fastIce default rewrite rules
+
+# page are called without any extension: /index, /contact /view-product
+
+# you can give a two letters first directory to specifies a language => /fr/contact, /en/index, /it/index
+# but if there is a main language, set it in the config file and you no longer need it in url
+# define('defaultLangage','fr'); in config.php will serve /index and /fr/index as the same page,
+#	canonical url will be set to / due to it is main language
+
+# page can get the url folder tree as arguments, only the url end define the real page to be show
+# => /fr/compagny-name/department/director/contact will call the 'contact' page with a 3 sized args array, also the framework will use defined language too
+# => /ibm/x31/view will serve the 'view' page, with a 2 sized args array, language will be the default
+
+# actually the first subdir cannot be one letter sized
+
+# as the engine, this file is under the by-nc-sa creative common license.
+
 RewriteEngine On
+
 # direct page, default langage
-RewriteRule ^([^/]+).htm$ index.php?p=$1 [L,QSA]
 RewriteRule ^([^/\.]+)$ index.php?p=$1 [L,QSA]
 
 # level 2 direct page, default langage
-RewriteRule ^([^/]{3,})/([^/]+).htm$ index.php?p=$2&path=$1 [L,QSA]
 RewriteRule ^([^/]{3,})/([^/\.]+)$ index.php?p=$2&path=$1 [L,QSA]
 
 # page on dir level n, path support and default langage
-RewriteRule ^([^/]{3,})/(.+)/([^/]+).htm$ index.php?p=$3&path=$1/$2 [L,QSA]
 RewriteRule ^([^/]{3,})/(.+)/([^/\.]+)$ index.php?p=$3&path=$1/$2 [L,QSA]
 
 # page on dir level 2, langage support
-RewriteRule ^([^/]{2})/([^/]+).htm$ index.php?p=$2&lang=$1 [L,QSA]
 RewriteRule ^([^/]{2})/([^/\.]+)$ index.php?p=$2&lang=$1 [L,QSA]
 
 # page on dir level n, langage and path support
-RewriteRule ^([^/]{2})/(.+)/([^/]+).htm$ index.php?p=$3&lang=$1&path=$2 [L,QSA]
 RewriteRule ^([^/]{2})/(.+)/([^/\.]+)$ index.php?p=$3&lang=$1&path=$2 [L,QSA]

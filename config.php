@@ -5,30 +5,42 @@ define('defaultLangage','fr');
 setlocale (LC_ALL, 'fr_FR.utf8','fra');
 
 // folder who will contain html template files
-define ('template','mytemplate');
+define ('template','template');
 
 // redis server address and dedicated key prefix
 define('redisServer','127.0.0.1');
-define('redisPrefix','your-site');
+define('redisPrefix','mysite');
 
 // define website entry point, set to '/' if you put this file at the root, else set it to '/subfolder/'
-define('site_url','/');
+define('site_url','/mysite/');
 
-// http address to the entry point site path, set to 'http://your-site.com/' if you put this file at the root, else set it to 'http://your-site.com/subfolder/'
-define('site_full_url','http://mysite.com/');
+define('domain_name','mysite.com'); // without http !
 
-// mail domain, in case of send email plugin added who will read this address, generally set it as your-site.com
-define('mail_domain','mysite.com');
+// mail domain, in case of send email plugin added who will read this address, default is your site domain
+define('mail_domain',domain_name);
+
+// the default page skeleton, here is minimal html5 one.
+define('defaultSkeleton','<!DOCTYPE html>
+<html lang="[lang]">
+	<head>	<meta charset="UTF-8" />
+		<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+		[head]
+		§header§
+	</head>
+	<body>	[body]
+		§content§
+	</body>
+</html>');
 
 // default info for meta and page title
-define('defaultTitle','');
-define('defaultKeywords','');
-define('defaultDescription','');
+define('defaultTitle','hello i\'m the title !');
+define('defaultKeywords','key,words');
+define('defaultDescription','a nice description :)');
 define('defaultMeta','');
 
 // some various folder and files names
 define ('common_path','common'); // common folder for template engine
 define ('module_path','plugins'); // plugin folder
-define ('design_path','constants.ini'); // constant design / page part files name (in common folder and dedicated page folder)
+define ('design_path','constants.ini'); // constants filename
 
 ?>

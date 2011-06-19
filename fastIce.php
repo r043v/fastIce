@@ -1,20 +1,19 @@
 <?php
-/* *** ** * fastIce Framework.
+/* *** ** * fastIce Framework core. \*
 ** *
-*
-	fastIce alpha 0.5.7 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce alpha 0.6.0 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
 *
 ** *
 * ** *** */
-
 include 'config.php';
+/* *********************.  ..**/
 
-/* ********************* **/
+define('site_full_url','http://'.domain_name.site_url);
 
-global $nofollow,$nodesigncache,$norendercache,$renderInclude,$redis,$global_current_file,$fnc,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlpath,$seedKey;
+global $nofollow,$nodesigncache,$noDesignCacheUsed,$norendercache,$renderInclude,$redis,$global_current_file,$fnc,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlpath,$seedKey,$currentPlugin;
 $redis = new Redis(); if(!$redis->connect(redisServer)) die('cannot rape the database ...');
 
 function setInfo($langage,$upath)
@@ -36,18 +35,20 @@ function getPageName(){global $seedKey;return $seedKey;}
 define ('site_full_path',dirname(__FILE__));
 define ('site_path',site_full_path.'/files');
 
-$nofollow=0;$nodesigncache=0;$norendercache=0;$renderInclude=array();$global_current_file='';$fnc=array();$designPath='';$commonDesignPath='';
+function logTo($file,$content){$f=fopen($file,'a') or die('can\'t open file "'.$file.'"');fwrite($f,$content);fclose($f);}
+
+$nofollow=0;$nodesigncache=0;$norendercache=0;$renderInclude=array();$global_current_file='';$fnc=array();$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
 /* additionnal keywords for render */
-function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/'.$word,$txt); }
+function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/'.$word,$renderInclude[$word]); /*logTo('log.txt',"\n\n\n".'add to '.$word.' : '.$txt."\n\n".'current '.$word.' : '.$renderInclude[$word]);*/ }
 function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/'.$word,$txt); }
-function extendRenderWord($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
+function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
 
 function addToHead($t){addToRender('head',$t);}function setHead($t){setRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}function setJs($t){setRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}function setJquery($t){setRender('jquery',$t);}$renderInclude['jquery']='';function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToStyle($t){addToRender('style',$t);}function setStyle($t){setRender('style',$t);}$renderInclude['style']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';function addToBody($t){addToRender('body',$t);}function setBody($t){setRender('body',$t);}$renderInclude['body']='';
 //foreach($renderWords as $word){ print('function addTo'.ucfirst($word).'($t){addToRender(\''.$word.'\',$t);}function set'.ucfirst($word).'($t){setRender(\''.$word.'\',$t);}$renderInclude[\''.$word.'\']=\'\';'); } die();
 
 global $filesinc; $filesinc = array();
-function addToRenderOnce($word,$txt)
+function addToRenderOnce($word,$id,$txt)
 {	static $filesinc, $loaded = 0;
 	global $currentDesign;
 	if(!$loaded)
@@ -56,21 +57,58 @@ function addToRenderOnce($word,$txt)
 		$loaded=1;
 	}
 
-	$key=md5($word.$txt); if(isset($filesinc[$key])) return; $filesinc[$key]=1;
+	$key=md5($word.$id); if(isset($filesinc[$key])) return; $filesinc[$key]=1;
 	setDesignCache(':filesinc',serialize($filesinc)); addToRender($word,$txt);
 }
-function includeJs($path){addToRenderOnce('head','<script type="text/javascript" src="'.site_url.$path.'"></script>');}
-function includeCss($path){addToRenderOnce('head','<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />');}
 
-function renderPage($url,$page)
-{	global $renderInclude, $design_cache, $canonicalurl,$currentLangage;
+function includeJs($path){$out='<script type="text/javascript" src="'.site_url.$path.'"></script>'; addToRenderOnce('head',$path,$out);}
+function includeCss($path){$out='<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />'; addToRenderOnce('head',$path,$out);}
+
+// direct inject javascript file content into the js head section
+function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
+
+// direct inject css file content into the style head section
+function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
+
+function renderPage($url,$callback='')
+{	$page = parsePage($url); // get brut html from parser
+
+	if(!empty($callback)) $callback(); // any last chance callback ?
+
+	// verifies and assign page final info
+	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed;
 	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];// else print ' title : '.$renderInclude['title'];
 	if(empty($renderInclude['keywords'])) $renderInclude['keywords'] = $design_cache['ini:keywords'];
 	if(empty($renderInclude['description'])) $renderInclude['description'] = $design_cache['ini:description'];
 	if(empty($renderInclude['meta'])) $renderInclude['meta'] = $design_cache['ini:meta'];
-	$renderInclude['meta'] .= '<link rel="canonical" href="'.$canonicalurl.$url.'" /><meta name="generator" content="fastIce" />';// $count=1;
-	//return str_replace(array('[title]','[url]','[lang]'),array($renderInclude['title'],site_url,$currentLangage),str_replace(array('[head]','[js]','[jquery]','[meta]','[style]','[keywords]','[description]'),array($renderInclude['head'],$renderInclude['js'],$renderInclude['jquery'],$renderInclude['meta'],$renderInclude['style'],$renderInclude['keywords'],$renderInclude['description']),$page,&$count));
-	return str_replace(array('[head]','[js]','[jquery]','[meta]','[style]','[keywords]','[description]','[body]','[title]','[url]','[lang]'),array($renderInclude['head'],$renderInclude['js'],$renderInclude['jquery'],$renderInclude['meta'],$renderInclude['style'],$renderInclude['keywords'],$renderInclude['description'],$renderInclude['body'],$renderInclude['title'],site_url,$currentLangage),$page);
+	// generate head render insertion
+	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
+
+	//<script>if(typeof jQuery == "undefined"){document.write(\'<script src="'.site_url.'js/jquery.min.js"></script>\');}</script>
+
+	$renderInclude['head']  = ''.$renderInclude['meta'].$renderInclude['head'].'[js]';
+	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
+
+	// is page not js free ?
+	if(!empty($renderInclude['js']) || !empty($renderInclude['jquery']))
+	{	$renderInclude['js'] = '<script type="text/javascript">'.$renderInclude['js'].'$(document).ready(function(){'.$renderInclude['jquery'].'});</script>';
+
+		// if possible use global page cache instead of page part fragmented cache
+		if(!$noDesignCacheUsed)
+		{	// try to minifies the javascript
+			if(extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
+
+			// global cache save
+
+			$completePage =  str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+
+			return $completePage;
+		}
+
+		return str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+	}
+
+	return str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,''),$page);
 }
 
 function get_include_contents($filename)
@@ -78,7 +116,7 @@ function get_include_contents($filename)
 	ob_start(); include ($filename); $contents = ob_get_contents(); ob_end_clean(); return $contents;
 }
 
-function showPage($key,$seed=1)
+function parsePage($key,$seed=1)
 {	global $fnc,$global_current_file,$need_fix_name,$designPath,$commonDesignPath,$redis;
 
 	if($seed){ $designPath=$key; $commonDesignPath=''; }
@@ -114,7 +152,12 @@ function showPage($key,$seed=1)
 		{	$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
 			if(is_file($path))
 			{	$out = file_get_contents($path); $redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,'ini:sk',$out);
-			} else $out = '<h3>fastIce not configured !</h3><br>please have a look at config.php file, you got some info to give at the framework,<br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br>'.file_get_contents('http://fastice.tk/first.start.html');//<br>please have a look at config.php file, you got some info to give at the framework,<br><br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br><br>exemple file content :<br><br><i>&sect;header&sect;<br>&sect;content&sect;<br>&sect;footer&sect;</i><br><br>also you can put here all the html additional text you need, like all the template files, exemple :<br><br><i>&lt;html&gt;<br><bq>&sect;header&sect;<br><bq>&lt;body&gt;<br><bq><bq>&lt;div class="some-class"&gt;&sect;content&sect;&lt;/div&gt;<br>&sect;footer&sect;</bq><br>&lt;/body&gt;<br></bq>&lt;/html&gt;</bq></i><br><br>A good start is to come <a target="_blank" href="http://fastice.tk">on the framework homepage</a>';
+			} else	{
+//					$out = '<h3>fastIce not configured !</h3><br>please have a look at config.php file, you got some info to give at the framework,<br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br>'.file_get_contents('http://fastice.tk/first.start.html');//<br>please have a look at config.php file, you got some info to give at the framework,<br><br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br><br>exemple file content :<br><br><i>&sect;header&sect;<br>&sect;content&sect;<br>&sect;footer&sect;</i><br><br>also you can put here all the html additional text you need, like all the template files, exemple :<br><br><i>&lt;html&gt;<br><bq>&sect;header&sect;<br><bq>&lt;body&gt;<br><bq><bq>&lt;div class="some-class"&gt;&sect;content&sect;&lt;/div&gt;<br>&sect;footer&sect;</bq><br>&lt;/body&gt;<br></bq>&lt;/html&gt;</bq></i><br><br>A good start is to come <a target="_blank" href="http://fastice.tk">on the framework homepage</a>';
+
+					$out = defaultSkeleton;
+
+				}
 		} else $out = $design_cache['ini:sk'];
 	} else {
 		$global_current_file = $key;
@@ -136,7 +179,7 @@ function showPage($key,$seed=1)
 			if($end === false) break;
 			$size = $end-$off;
 			$word = substr($out,$off,$size);
-			$out = substr_replace($out,showPage($word,0),$start,$size+4);
+			$out = substr_replace($out,parsePage($word,0),$start,$size+4);
 			$offset = $start;
 		}
 	} else $out = '';
@@ -160,10 +203,10 @@ function getArgs($string,$word,$separator)
 global $design_cache;
 function noDesignCache(){global $nodesigncache;$nodesigncache=1;}
 function setDesignCache($design,$content)
-{	global $nodesigncache,$seedPath,$designPath,$currentLangage,$redis;
+{	global $nodesigncache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;
 	if(!$nodesigncache && !isset($_SESSION['user']))
 	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
-	}
+	} else { $noDesignCacheUsed=1; }
 }
 
 function getDesignCache($design)
@@ -259,35 +302,61 @@ function getDesign($design)
 			if($mdlargs[0] > 0)
 			{	$fn = 'fn_'.$mdl;
 				ob_start();
+				global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$mdl;
 				if(function_exists($fn)) $fn($mdlargs);
 				else	{	$path = module_path.'/'.$mdl.'/'.$mdl.'.php';
 						if(is_file($path))
-						{	//print '<b> load module '.$mdl.' </b>';
-							include($path); $fn($mdlargs);
-						}// else { print '<br>module not found or invalid : <b>'.$mdl.'</b><br>args : '; print_r($mdlargs); }
+						{	$currentPlugin=$cplg;
+							include($path);
+							if(function_exists($fn))
+							{	$fn($mdlargs);
+								$out = ob_get_contents(); ob_end_clean();
+								setDesignCache($design,$out); return $out;
+							}
+						}
 					}
-				$out = ob_get_contents(); ob_end_clean();
-				setDesignCache($design,$out); return $out;
 			}
 		}
 	}
 
-	return '<span style="color:red;">'.$design.' not found!</span>';
+	// design is finally not found !
+
+	if(isUserPrivilege('show-error'))
+	{	// css error msg
+		addToRenderOnce('style','	span.red{color:red;}
+						span.big{font-style:italic;font-weight:bold}');
+		// generate html to draw some page info
+		$out = '<p>design <span class="red bi">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
+
+		// maybe a plugin ? the case, draw plugin info too
+		{	$mdl = explode('|',$design);
+			if(isset($mdl[0]))
+			{	$mdl = $mdl[0];
+				$mdlargs = getArgs($design,$mdl.'|','|');
+				if($mdlargs[0] > 0) $out.= '<span class="bi">seen plugin</span> <span class="bi red">'.$mdl.'</span>, please check <span class="bi">'.module_path.'/'.$mdl.'/'.$mdl.'.php</span> plugin file, and his <span class="bi">fn_'.$mdl.'($args)</span> function.';
+			}
+		}
+
+		return $out;
+	} else return '';
 }
 
+function getCurrentPlugin(){ global $currentPlugin; return $currentPlugin; }
+function getCurrentPluginUrl(){ global $currentPlugin; return site_url.module_path.'/'.$currentPlugin.'/'; }
+
 function needPlugin($plg)
-{	$fn = 'fn_'.$plg;
-	if(function_exists($fn)) return true;
+{	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
+	if(function_exists($fn)) { $currentPlugin=$cplg; return true; }
 	$path = site_full_path.'/'.module_path.'/'.$plg.'/'.$plg.'.php';
-	if(is_file($path)) { include($path); return true; }
-	return false;
+	if(is_file($path)) { include($path); $currentPlugin=$cplg; return true; }
+	$currentPlugin=$cplg; return false;
 }
 
 function callPlugin($plg,$args)
 {	if(false === needPlugin($plg)) return false;
-	$fn = 'fn_'.$plg;
+	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
 	ob_start(); $fn($args); $out = ob_get_contents(); ob_end_clean();
-	return $out;
+	$currentPlugin=$cplg; return $out;
 }
 
 function fillDesign($data, $design, $callback=false)

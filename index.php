@@ -17,10 +17,16 @@ if(isset($_GET['lang']))
 	setInfo($_GET['lang'],$urlPath);
 else	setInfo(defaultLangage,$urlPath);
 
-$page = renderPage($pageToShow,showPage($pageToShow));
+$page = renderPage($pageToShow,function()
+{	
+
+});
 
 session_write_close();
 
-echo str_replace('[time]','generated in '.round(((microtime(true)-$tstart)*1000),3).' ms on this 1.6Ghz monocore, 2Gb ram server.',$page);
+$page = str_replace('[time]','generated in '.round(((microtime(true)-$tstart)*1000),3).' ms.',$page);
+
+//echo $page;
+exit($page);
 
 ?>

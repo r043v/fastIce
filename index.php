@@ -18,15 +18,12 @@ if(isset($_GET['lang']))
 else	setInfo(defaultLangage,$urlPath);
 
 $page = renderPage($pageToShow,function()
-{	
+{
 
 });
 
 session_write_close();
 
-$page = str_replace('[time]','generated in '.round(((microtime(true)-$tstart)*1000),3).' ms.',$page);
-
-//echo $page;
 exit($page);
 
 ?>

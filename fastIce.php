@@ -143,7 +143,7 @@ function parsePage($key,$seed=1)
 		{	// complete page cache in gz
 			header("X-Compression: gzip");
 			header("Content-Encoding: gzip");
-			return $design_cache['gzip'];
+			exit($design_cache['gzip']);
 		}
 
 		if(!isset($design_cache['ini:loaded'])) // redis page info not set
@@ -330,14 +330,11 @@ function getDesign($design)
 	}
 
 	// design is finally not found !
-
 	if(isUserPrivilege('show-error'))
 	{	// css error msg
-		addToRenderOnce('style','	span.red{color:red;}
-						span.big{font-style:italic;font-weight:bold}');
+		addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info
 		$out = '<p>design <span class="red bi">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
-
 		// maybe a plugin ? the case, draw plugin info too
 		{	$mdl = explode('|',$design);
 			if(isset($mdl[0]))
@@ -346,7 +343,6 @@ function getDesign($design)
 				if($mdlargs[0] > 0) $out.= '<span class="bi">seen plugin</span> <span class="bi red">'.$mdl.'</span>, please check <span class="bi">'.module_path.'/'.$mdl.'/'.$mdl.'.php</span> plugin file, and his <span class="bi">fn_'.$mdl.'($args)</span> function.';
 			}
 		}
-
 		return $out;
 	} else return '';
 }

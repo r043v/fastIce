@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce alpha 0.6.0 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce alpha 0.6.1 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -84,8 +84,6 @@ function renderPage($url,$callback='')
 	// generate head render insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
 
-	//<script>if(typeof jQuery == "undefined"){document.write(\'<script src="'.site_url.'js/jquery.min.js"></script>\');}</script>
-
 	$renderInclude['head']  = ''.$renderInclude['meta'].$renderInclude['head'].'[js]';
 	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
 
@@ -98,9 +96,17 @@ function renderPage($url,$callback='')
 		{	// try to minifies the javascript
 			if(extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
 
-			// global cache save
+			// global cache save, in gz
 
-			$completePage =  str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+			$completePage =  gzencode(str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page),9);
+
+			global $redis,$seedPath,$currentLangage;
+			$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
+			$redis->del($key);
+			$redis->hset($key,'gzip',$completePage);
+
+			header("X-Compression: gzip");
+			header("Content-Encoding: gzip");
 
 			return $completePage;
 		}
@@ -133,6 +139,13 @@ function parsePage($key,$seed=1)
 
 		$design_cache = $redis->hgetall(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
 
+		if(isset($design_cache['gzip']))
+		{	// complete page cache in gz
+			header("X-Compression: gzip");
+			header("Content-Encoding: gzip");
+			return $design_cache['gzip'];
+		}
+
 		if(!isset($design_cache['ini:loaded'])) // redis page info not set
 		{	$page_opt = array('loaded'=>1);
 			$path = template.'/'.$key.'/'.$key.'.ini';
@@ -152,10 +165,7 @@ function parsePage($key,$seed=1)
 		{	$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
 			if(is_file($path))
 			{	$out = file_get_contents($path); $redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,'ini:sk',$out);
-			} else	{
-//					$out = '<h3>fastIce not configured !</h3><br>please have a look at config.php file, you got some info to give at the framework,<br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br>'.file_get_contents('http://fastice.tk/first.start.html');//<br>please have a look at config.php file, you got some info to give at the framework,<br><br>Also, you need going create the default page skeleton file : <b>'.$path.'</b><br><br>exemple file content :<br><br><i>&sect;header&sect;<br>&sect;content&sect;<br>&sect;footer&sect;</i><br><br>also you can put here all the html additional text you need, like all the template files, exemple :<br><br><i>&lt;html&gt;<br><bq>&sect;header&sect;<br><bq>&lt;body&gt;<br><bq><bq>&lt;div class="some-class"&gt;&sect;content&sect;&lt;/div&gt;<br>&sect;footer&sect;</bq><br>&lt;/body&gt;<br></bq>&lt;/html&gt;</bq></i><br><br>A good start is to come <a target="_blank" href="http://fastice.tk">on the framework homepage</a>';
-
-					$out = defaultSkeleton;
+			} else	{				$out = defaultSkeleton;
 
 				}
 		} else $out = $design_cache['ini:sk'];

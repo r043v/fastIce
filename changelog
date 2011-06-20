@@ -27,3 +27,6 @@
 	remove support for .html page extension, now page will not get any extension at all.
 
 	some other fix, it's a new branch :)
+
+0.6.1
+	add gz compression for page who are completely in cache

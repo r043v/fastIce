@@ -61,13 +61,9 @@ function addToRenderOnce($word,$id,$txt)
 	setDesignCache(':filesinc',serialize($filesinc)); addToRender($word,$txt);
 }
 
-function includeJs($path){$out='<script type="text/javascript" src="'.site_url.$path.'"></script>'; addToRenderOnce('head',$path,$out);}
-function includeCss($path){$out='<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />'; addToRenderOnce('head',$path,$out);}
-
-// direct inject javascript file content into the js head section
+function includeJs($path){addToRenderOnce('head',$path,'<script type="text/javascript" src="'.site_url.$path.'"></script>');}
+function includeCss($path){addToRenderOnce('head',$path,'<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />');}
 function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
-
-// direct inject css file content into the style head section
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
 function renderPage($url,$callback='')
@@ -91,29 +87,46 @@ function renderPage($url,$callback='')
 	if(!empty($renderInclude['js']) || !empty($renderInclude['jquery']))
 	{	$renderInclude['js'] = '<script type="text/javascript">'.$renderInclude['js'].'$(document).ready(function(){'.$renderInclude['jquery'].'});</script>';
 
-		// if possible use global page cache instead of page part fragmented cache
+		// the page will be fully in cache !
 		if(!$noDesignCacheUsed)
 		{	// try to minifies the javascript
 			if(extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
 
-			// global cache save, in gz
+			// fill page info, script and other additions
+			$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
 
-			$completePage =  gzencode(str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page),9);
+			// gz the output, full compression
+			$completePage =  gzencode($completePage,9);
 
+			// global cache save of the gz data
 			global $redis,$seedPath,$currentLangage;
 			$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
-			$redis->del($key);
-			$redis->hset($key,'gzip',$completePage);
-
+			$redis->del($key); // delete page cache key
+			$redis->hset($key,'gzip',$completePage); // write the page cache key with only the gz data
+			
+			// send gz header and return the page
 			header("X-Compression: gzip");
 			header("Content-Encoding: gzip");
-
 			return $completePage;
 		}
 
-		return str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+		$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+
+		if(gz_compression) // out gz compression is forced
+		{	//$size=strlen($completePage);$time=microtime(true);
+			$completePage = gzencode($completePage,gz_compression);
+
+			// send gz header
+			header("X-Compression: gzip");
+			header("Content-Encoding: gzip");
+
+			//print 'compression time : '.round((microtime(true)-$time)*1000,3).'<br>compression ratio : '.(strlen($completePage)/$size).'<br>';
+		}
+
+		return $completePage;
 	}
 
+	// page is js free !
 	return str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,''),$page);
 }
 

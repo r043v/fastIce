@@ -1,6 +1,6 @@
 <?php
 
-$tstart = microtime(true);
+//$tstart = microtime(true);
 session_start();
 
 include 'fastIce.php';
@@ -23,6 +23,7 @@ $page = renderPage($pageToShow,function()
 });
 
 session_write_close();
+//print 'generating time : '.round((microtime(true)-$tstart)*1000,3).'<br>';
 
 exit($page);
 

@@ -19,7 +19,7 @@ define('domain_name','mysite.com'); // without http !
 // mail domain, in case of send email plugin added who will read this address, default is your site domain
 define('mail_domain',domain_name);
 
-// the default page skeleton, here is minimal html5 one.
+// the default page skeleton, here is minimal html5 one with jquery loading.
 define('defaultSkeleton','<!DOCTYPE html>
 <html lang="[lang]">
 	<head>	<meta charset="UTF-8" />
@@ -42,5 +42,8 @@ define('defaultMeta','');
 define ('common_path','common'); // common folder for template engine
 define ('module_path','plugins'); // plugin folder
 define ('design_path','constants.ini'); // constants filename
+
+// gz compression output for dynamic pages : 0 disable, else is compression power
+define ('gz_compression',1);
 
 ?>

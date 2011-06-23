@@ -17,10 +17,7 @@ if(isset($_GET['lang']))
 	$lang = $_GET['lang'];
 else	$lang = defaultLangage;
 
-$page = renderPage($pageToShow,$lang,$urlPath,function()
-{
-
-});
+$page = renderPage($pageToShow,$lang,$urlPath);
 
 session_write_close();
 //print 'generating time : '.round((microtime(true)-$tstart)*1000,3).'<br>';

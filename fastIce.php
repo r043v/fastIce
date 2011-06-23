@@ -53,7 +53,7 @@ function includeCss($path){addToRenderOnce('head',$path,'<link rel="stylesheet" 
 function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
-function renderPage($url,$langage,$upath,$callback='')
+function renderPage($url,$langage,$upath,$callback=false)
 {	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath;
 
 	$currentLangage=$langage; $urlPath=$upath;
@@ -68,7 +68,7 @@ function renderPage($url,$langage,$upath,$callback='')
 
 	$page = parsePage($url); // get brut html from parser
 
-	if(!empty($callback)) $callback(); // any last chance callback ?
+	if($callback != false) $callback(&$page); // any last chance callback ?
 
 	// verifies and assign page final info
 	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];// else print ' title : '.$renderInclude['title'];

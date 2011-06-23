@@ -1,7 +1,7 @@
 <?php
 
 // an empty function with plugin name, needed by plugin system.
-function redisFillDesign($args)
+function fn_redisFillDesign($args)
 {	// in future, will give access of all redis hash fill from template system,
 	// ie : §redisFillDesign|hashFillMethod|design|dataKey§
 }

@@ -22,7 +22,6 @@ function getPageName(){global $seedKey;return $seedKey;}
 
 define ('site_full_path',dirname(__FILE__));
 define ('site_full_url','http://'.domain_name.site_url);
-define ('site_path',site_full_path.'/files');
 
 $nofollow=0;$noDesignCache=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
 
@@ -408,54 +407,6 @@ function fillDesign($data, $design, $callback=false)
 	} else foreach($data as $k => $dta) $out .= str_replace($arrayin,array_map(function($w)use($dta,$k){if($w=='refkey')return $k; if(isset($dta[$w])) return $dta[$w]; return '';},$keywords),$design);
 
 	return $out;
-}
-
-function lredisHashFill($listkey, $design, $callback=false, $kprefix='', $ksuffix='', $start=0, $end=-1, &$size=0)
-{	global $redis;
-	list($keys,$size) = $redis->multi(Redis::PIPELINE)->lRange($listkey,$start,$end)->lSize($listkey)->exec();
-	if(empty($keys)) return '';
-	$redis->multi(Redis::PIPELINE); foreach($keys as $k) $redis->hgetall($kprefix.$k.$ksuffix);
-	$data = array_combine($keys,$redis->exec());
-	//print '<pre>';print_r($data);print '</pre>';
-	return fillDesign($data,$design,$callback);
-}
-
-function sredisHashFill($setkey, $design, $callback=false, $kprefix='', $ksuffix='', $filter=false, $order=false, $preorder=false,&$nbentry=0)
-{	global $redis; $keys = $redis->smembers($setkey); if(empty($keys)){ $nbentry=0; return ''; }
-	$redis->multi(Redis::PIPELINE);
-	if($preorder !== false) $order($keys);
-
-	$nbok=0;
-	if($filter === false)
-	{	foreach($keys as $k){ $redis->hgetall($kprefix.$k.$ksuffix); $nbok++;}
-		$data = array_combine($keys,$redis->exec());
-	}
-	else	{	$nb=0;
-			$karray = array();
-			foreach($keys as $k)
-			{	$key = $kprefix.$k.$ksuffix;
-				if($filter($k,$key,$nb++,$nbok))
-				{ $redis->hgetall($key); $nbok++; $karray[]=$key;
-				}
-			}
-			$data = array_combine($karray,$redis->exec());
-		}
-	$nbentry=$nbok;
-
-	if($order !== false) $order($data);
-	return fillDesign($data,$design,$callback);
-}
-
-function srandRedisHashFill($setkey, $design, $callback=false, $kprefix='', $ksuffix='', $filter=false)
-{	global $redis;
-	$k = $redis->sRandMember($setkey); if($k===false) return ''; $key = $kprefix.$k.$ksuffix;
-	if($filter !== false) while(!$filter($k,$key)) { $k = $redis->sRandMember($setkey); $key = $kprefix.$k.$ksuffix; }
-	return fillDesign(array($key => $redis->hgetall($key)), $design, $callback);
-}
-
-function redisHashFill($hashkey, $design, $callback=false)
-{	global $redis;
-	return fillDesign(array($hashkey => $redis->hgetall($hashkey)), $design, $callback);
 }
 
 function isUserPrivilege($prv)

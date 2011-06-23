@@ -11,25 +11,23 @@
 include 'config.php';
 /* *********************.  ..**/
 
-define('site_full_url','http://'.domain_name.site_url);
-
-global $nofollow,$nodesigncache,$noDesignCacheUsed,$norendercache,$renderInclude,$redis,$global_current_file,$fnc,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlpath,$seedKey,$currentPlugin;
+global $nofollow,$noDesignCache,$noDesignCacheUsed,$renderInclude,$redis,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin;
 
 if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 $redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
 
-function getlang(){global $currentLangage;return $currentLangage;}
-function getUrlPath(){global $urlpath;return $urlpath;}
+function getLang(){global $currentLangage;return $currentLangage;}
+function getUrlPath(){global $urlPath;return $urlPath;}
 function getPageName(){global $seedKey;return $seedKey;}
 
 define ('site_full_path',dirname(__FILE__));
+define ('site_full_url','http://'.domain_name.site_url);
 define ('site_path',site_full_path.'/files');
 
-function logTo($file,$content){$f=fopen($file,'a') or die('can\'t open file "'.$file.'"');fwrite($f,$content);fclose($f);}
+$nofollow=0;$noDesignCache=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
 
-$nofollow=0;$nodesigncache=0;$norendercache=0;$renderInclude=array();$global_current_file='';$fnc=array();$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
 /* additionnal keywords for render */
-function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/'.$word,$renderInclude[$word]); /*logTo('log.txt',"\n\n\n".'add to '.$word.' : '.$txt."\n\n".'current '.$word.' : '.$renderInclude[$word]);*/ }
+function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/'.$word,$renderInclude[$word]); }
 function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/'.$word,$txt); }
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
@@ -57,9 +55,9 @@ function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
 function renderPage($url,$langage,$upath,$callback='')
-{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlpath;
+{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath;
 
-	$currentLangage=$langage; $urlpath=$upath;
+	$currentLangage=$langage; $urlPath=$upath;
 
 	if($langage!=defaultLangage)
 	{	$canonicalurl=site_full_url.$langage.'/';
@@ -78,9 +76,9 @@ function renderPage($url,$langage,$upath,$callback='')
 	if(empty($renderInclude['keywords'])) $renderInclude['keywords'] = $design_cache['ini:keywords'];
 	if(empty($renderInclude['description'])) $renderInclude['description'] = $design_cache['ini:description'];
 	if(empty($renderInclude['meta'])) $renderInclude['meta'] = $design_cache['ini:meta'];
+
 	// generate head render insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
-
 	$renderInclude['head']  = ''.$renderInclude['meta'].$renderInclude['head'].'[js]';
 	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
 
@@ -114,14 +112,10 @@ function renderPage($url,$langage,$upath,$callback='')
 		$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
 
 		if(gz_compression) // out gz compression is forced
-		{	//$size=strlen($completePage);$time=microtime(true);
-			$completePage = gzencode($completePage,gz_compression);
-
+		{	$completePage = gzencode($completePage,gz_compression);
 			// send gz header
 			header("X-Compression: gzip");
 			header("Content-Encoding: gzip");
-
-			//print 'compression time : '.round((microtime(true)-$time)*1000,3).'<br>compression ratio : '.(strlen($completePage)/$size).'<br>';
 		}
 
 		return $completePage;
@@ -137,7 +131,7 @@ function get_include_contents($filename)
 }
 
 function parsePage($key,$seed=1)
-{	global $fnc,$global_current_file,$need_fix_name,$designPath,$commonDesignPath,$redis;
+{	global $global_current_file,$need_fix_name,$designPath,$commonDesignPath,$redis;
 
 	if($seed){ $designPath=$key; $commonDesignPath=''; }
 
@@ -145,7 +139,7 @@ function parsePage($key,$seed=1)
 
 	$out = '';
 	if($seed)
-	{	global $seedPath,$seedKey,$design_cache,$currentLangage,$urlpath; $seedPath=$urlpath.'/'.$key; $seedKey=$key;
+	{	global $seedPath,$seedKey,$design_cache,$currentLangage,$urlPath; $seedPath=$urlPath.'/'.$key; $seedKey=$key;
 
 		if(isset($_GET['f5']) || isset($_SESSION['user']))
 		{ $redis->delete(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
@@ -225,10 +219,10 @@ function getArgs($string,$word,$separator)
 }
 
 global $design_cache;
-function noDesignCache(){global $nodesigncache;$nodesigncache=1;}
+function noDesignCache(){global $noDesignCache;$noDesignCache=1;}
 function setDesignCache($design,$content)
-{	global $nodesigncache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;
-	if(!$nodesigncache && !isset($_SESSION['user']))
+{	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;
+	if(!$noDesignCache && !isset($_SESSION['user']))
 	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
 	} else { $noDesignCacheUsed=1; }
 }
@@ -241,7 +235,7 @@ function getDesignCache($design)
 
 function getDesign($design)
 {	if($design == '') return ''; $d = getDesignCache($design); if($d !== false) return $d;
-	global $nofollow,$last_design,$need_fix_name,$redis,$nodesigncache,$currentDesign; $nodesigncache=0; $currentDesign=$design;
+	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign; $noDesignCache=0; $currentDesign=$design;
 	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; }
 	if($design == 'folow'){   $nofollow=0; return ''; }
 	if($nofollow) { return '[$$]'.$design.'[$$]'; }
@@ -292,30 +286,23 @@ function getDesign($design)
 		// search design in constant files
 		global $global_constants,$seedPath,$seedKey;
 		if(!isset($global_constants))
-		{	//$global_constants = $redis->hgetall(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath.':constant');
-			//if(empty($global_constants))
-			{	$global_constants = array();
-				//print '<br>loading constants';
-				// common constants
-				$path = template.'/'.common_path.'/'.design_path;
-				if(is_file($path)) $constants = parse_ini_file($path,true);
+		{	$global_constants = array();
+			// common constants
+			$path = template.'/'.common_path.'/'.design_path;
+			if(is_file($path)) $constants = parse_ini_file($path,true);
 
-				//print '<pre>';print_r($constants);print '</pre>';
-
-				// page specific constants
-				$path = template.'/'.$seedKey.'/'.design_path;
-				if(is_file($path)) $constants = array_merge_recursive($constants,parse_ini_file($path,true));
-				if(isset($constants))
-				{	//print '<pre>';print_r($constants);print '</pre>';
-					foreach($constants as $name=>$sub)
-					{	if($name == $currentLangage || $name == 'common')
-							foreach($sub as $cnt=>$val) $global_constants[$cnt] = $val;
-					}
+			// page specific constants
+			$path = template.'/'.$seedKey.'/'.design_path;
+			if(is_file($path)) $constants = array_merge_recursive($constants,parse_ini_file($path,true));
+			if(isset($constants))
+			{	//print '<pre>';print_r($constants);print '</pre>';
+				foreach($constants as $name=>$sub)
+				{	if($name == $currentLangage || $name == 'common')
+						foreach($sub as $cnt=>$val) $global_constants[$cnt] = $val;
 				}
-				//$redis->hmset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath.':constant',$global_constants);
-				//print '<pre>';print_r($global_constants);print '</pre>';
 			}
 		}
+
 		if(isset($global_constants[$design])){$d=$global_constants[$design];setDesignCache($design,$d);return $d;}
 	}
 	else
@@ -380,7 +367,7 @@ function callPlugin($plg,$args)
 }
 
 function fillDesign($data, $design, $callback=false)
-{	global $nodesigncache; $savenodesign=$nodesigncache; $nodesigncache=0; $design=getDesign($design); $nodesigncache=$savenodesign;
+{	global $noDesignCache; $savenodesign=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$savenodesign;
 	$keywords = array();
 	$offset=0; // search all keywords in the design
 	$arrayin = array();
@@ -456,7 +443,6 @@ function sredisHashFill($setkey, $design, $callback=false, $kprefix='', $ksuffix
 	$nbentry=$nbok;
 
 	if($order !== false) $order($data);
-	//print '<pre>';print_r($data);print '</pre>';
 	return fillDesign($data,$design,$callback);
 }
 

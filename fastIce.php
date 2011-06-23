@@ -18,18 +18,6 @@ global $nofollow,$nodesigncache,$noDesignCacheUsed,$norendercache,$renderInclude
 if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 $redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
 
-function setInfo($langage,$upath)
-{	global $currentLangage,$canonicalurl,$urlpath;$currentLangage=$langage;$urlpath=$upath;
-	if($langage!=defaultLangage)
-	{	$canonicalurl=site_full_url.$langage.'/';
-		if($upath != '') $canonicalurl.=$upath.'/';
-	}
-	else
-	{ $canonicalurl=site_full_url;
-	  if($upath != '') $canonicalurl.=$upath.'/';
-	}
-}
-
 function getlang(){global $currentLangage;return $currentLangage;}
 function getUrlPath(){global $urlpath;return $urlpath;}
 function getPageName(){global $seedKey;return $seedKey;}
@@ -68,13 +56,24 @@ function includeCss($path){addToRenderOnce('head',$path,'<link rel="stylesheet" 
 function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
-function renderPage($url,$callback='')
-{	$page = parsePage($url); // get brut html from parser
+function renderPage($url,$langage,$upath,$callback='')
+{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlpath;
+
+	$currentLangage=$langage; $urlpath=$upath;
+
+	if($langage!=defaultLangage)
+	{	$canonicalurl=site_full_url.$langage.'/';
+		if($upath != '') $canonicalurl.=$upath.'/';
+	} else
+	{	$canonicalurl=site_full_url;
+		if($upath != '') $canonicalurl.=$upath.'/';
+	}
+
+	$page = parsePage($url); // get brut html from parser
 
 	if(!empty($callback)) $callback(); // any last chance callback ?
 
 	// verifies and assign page final info
-	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed;
 	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];// else print ' title : '.$renderInclude['title'];
 	if(empty($renderInclude['keywords'])) $renderInclude['keywords'] = $design_cache['ini:keywords'];
 	if(empty($renderInclude['description'])) $renderInclude['description'] = $design_cache['ini:description'];

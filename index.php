@@ -14,10 +14,10 @@ if(isset($_GET['path']))
 else	$urlPath = '';
 
 if(isset($_GET['lang']))
-	setInfo($_GET['lang'],$urlPath);
-else	setInfo(defaultLangage,$urlPath);
+	$lang = $_GET['lang'];
+else	$lang = defaultLangage;
 
-$page = renderPage($pageToShow,function()
+$page = renderPage($pageToShow,$lang,$urlPath,function()
 {
 
 });

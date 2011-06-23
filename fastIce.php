@@ -14,7 +14,9 @@ include 'config.php';
 define('site_full_url','http://'.domain_name.site_url);
 
 global $nofollow,$nodesigncache,$noDesignCacheUsed,$norendercache,$renderInclude,$redis,$global_current_file,$fnc,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlpath,$seedKey,$currentPlugin;
-$redis = new Redis(); if(!$redis->connect(redisServer)) die('cannot rape the database ...');
+
+if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
+$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
 
 function setInfo($langage,$upath)
 {	global $currentLangage,$canonicalurl,$urlpath;$currentLangage=$langage;$urlpath=$upath;

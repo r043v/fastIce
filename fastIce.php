@@ -4,8 +4,7 @@
 *	fastIce alpha 0.6.4 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
-	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
-*
+*	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
 ** *
 * ** *** */
 include 'config.php';
@@ -109,17 +108,17 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	if($need_fix_name) $page = str_replace('[$$]','§', $page);
 
-	if($callback != false) $callback(&$page); // any last chance callback ?
+	if($callback !== false) $callback(&$page); // any last chance callback ?
 
 	// verifies and assign page final info
-	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];// else print ' title : '.$renderInclude['title'];
+	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];
 	if(empty($renderInclude['keywords'])) $renderInclude['keywords'] = $design_cache['ini:keywords'];
 	if(empty($renderInclude['description'])) $renderInclude['description'] = $design_cache['ini:description'];
 	if(empty($renderInclude['meta'])) $renderInclude['meta'] = $design_cache['ini:meta'];
 
 	// generate head render insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
-	$renderInclude['head']  = ''.$renderInclude['meta'].$renderInclude['head'].'[js]';
+	$renderInclude['head']  = $renderInclude['meta'].$renderInclude['head'].'[js]';
 	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
 
 	// is page not js free ?
@@ -228,7 +227,7 @@ function getDesignCache($design)
 }
 
 function getDesign($design)
-{	if($design == '') return ''; $d = getDesignCache($design); if($d !== false) return $d;
+{	if(empty($design)) return ''; $d = getDesignCache($design); if($d !== false) return $d;
 	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign; $noDesignCache=0; $currentDesign=$design;
 	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; }
 	if($design == 'folow'){   $nofollow=0; return ''; }

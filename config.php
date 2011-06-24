@@ -1,4 +1,4 @@
-<?php /* fastIce global config */
+<?php /* fastIce framework global config */
 
 // default page langage and php localisation
 define('defaultLangage','fr');
@@ -25,10 +25,10 @@ define('defaultSkeleton','<!DOCTYPE html>
 	<head>	<meta charset="UTF-8" />
 		<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 		[head]
-		§header§
+		§head§
 	</head>
 	<body>	[body]
-		§content§
+		§body§
 	</body>
 </html>');
 

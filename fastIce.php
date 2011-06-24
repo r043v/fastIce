@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce alpha 0.6.3 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce alpha 0.6.4 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -26,8 +26,8 @@ define ('site_full_url','http://'.domain_name.site_url);
 $nofollow=0;$noDesignCache=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
 
 /* additionnal keywords for render */
-function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/'.$word,$renderInclude[$word]); }
-function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/'.$word,$txt); }
+function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/['.$word,$renderInclude[$word]); setDesignCache($currentDesign.'/[addition',true); }
+function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/['.$word,$txt); setDesignCache($currentDesign.'/[addition',true); }
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
 
@@ -171,18 +171,18 @@ function get_include_contents($filename)
 	ob_start(); include ($filename); $contents = ob_get_contents(); ob_end_clean(); return $contents;
 }
 
-function parsePage($key,$out='')
+function parsePage($key,$out=false)
 {	global $global_current_file,$designPath,$commonDesignPath,$renderInclude;
 
  	$dpath = $designPath; $cdpath = $commonDesignPath;
 	$global_current_file = $key;
 
-	if(empty($out))
+	if($out===false)
 	{	$out = getDesign($key);
 		$designPath .= '/'.$key; $commonDesignPath .= '/'.$key;
 	}
 
-	if(!empty($out))
+	if($out!==false)
 	{	$offset=0;
 		for(;;)
 		{	$start = strpos($out,'§',$offset);
@@ -197,8 +197,8 @@ function parsePage($key,$out='')
 		}
 	}
 
-	// global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\''.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
-	$d=getDesignCache('head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache('js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;}
+	// /* generate next line in brace content ! */ global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\'['.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
+	if(getDesignCache('[addition') !== false){ $d=getDesignCache('[head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('[body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache('[js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('[jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('[title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('[meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('[style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('[keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('[description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;} }
 
 	$designPath = $dpath; $commonDesignPath = $cdpath;
 	return $out;

@@ -182,7 +182,7 @@ function parsePage($key,$out=false)
 
 	if($out!==false)
 	{	$offset=0;
-		for(;;)
+		while(1)
 		{	$start = strpos($out,'§',$offset);
 			if($start === false) break;
 			$off = $start+2;
@@ -365,7 +365,7 @@ function fillDesign($data, $design, $callback=false)
 	$offset=0; // search all keywords in the design
 	$arrayin = array();
 
-	for(;;)
+	while(1)
 	{	$start = strpos($design,'$',$offset);
 		if($start === false) break;
 		$off = $start+1;

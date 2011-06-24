@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce alpha 0.6.4 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce alpha 0.6.5 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -197,16 +197,6 @@ function parsePage($key,$out=false)
 	return $out;
 }
 
-function getArgs($string,$word,$separator)
-{	$wordSize = strlen($word);
-	if(substr($string,0,$wordSize) == $word)
-	{	$args = substr($string,$wordSize);
-		$args = explode($separator,$args);
-		array_unshift($args,count($args));
-		return $args;
-	}	return array(0);
-}
-
 function noDesignCache(){global $noDesignCache;$noDesignCache=1;}
 function setDesignCache($design,$content)
 {	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;
@@ -223,53 +213,51 @@ function getDesignCache($design)
 
 function getDesign($design)
 {	if(empty($design)) return ''; $d = getDesignCache($design); if($d !== false) return $d;
-	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign; $noDesignCache=0; $currentDesign=$design;
-	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; }
-	if($design == 'folow'){   $nofollow=0; return ''; }
-	if($nofollow) { return '[$$]'.$design.'[$$]'; }
-	global $designPath,$commonDesignPath,$currentLangage;
+	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign,$designPath,$commonDesignPath,$currentLangage;
+	$noDesignCache=0; $currentDesign=$design;
+	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; } else if($design == 'folow'){ $nofollow=0; return ''; } if($nofollow) { return '[$$]'.$design.'[$$]'; }
 
 	if(false === strstr($design,'|'))
 	{
 		// search design in the template folder, absolute path with lang prefix
 		$path = template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php'; // template folder
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the template folder, absolute path
 		$path = template.'/'.$designPath.'/'.$design.'.php'; // template folder
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, absolute path with lang prefix
 		$path = template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, absolute path
 		$path = template.'/'.common_path.$commonDesignPath.'/'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, absolute path with lang prefix
 		$path = common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, absolute path
 		$path = common_path.$commonDesignPath.'/'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, just file, no path, lang prefix
 		$path = template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, just file, no path
 		$path = template.'/'.common_path.'/'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, just file, no path, lang prefix
 		$path = common_path.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, just file, no path
 		$path = common_path.'/'.$design.'.php';
-		if(is_file($path)!==false){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in constant files
 		global $global_constants,$seedPath,$seedKey;
@@ -294,28 +282,20 @@ function getDesign($design)
 		if(isset($global_constants[$design])){$d=$global_constants[$design];setDesignCache($design,$d);return $d;}
 	}
 	else
-	{	$mdl = explode('|',$design);
-		if(isset($mdl[0]))
-		{	$mdl = $mdl[0];
-			$mdlargs = getArgs($design,$mdl.'|','|');
-			if($mdlargs[0] > 0)
-			{	$fn = 'fn_'.$mdl;
-				ob_start();
-				global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$mdl;
-				if(function_exists($fn)) $fn($mdlargs);
-				else	{	$path = module_path.'/'.$mdl.'/'.$mdl.'.php';
-						if(is_file($path))
-						{	$currentPlugin=$cplg;
-							include($path);
-							if(function_exists($fn))
-							{	$fn($mdlargs);
-								$out = ob_get_contents(); ob_end_clean();
-								setDesignCache($design,$out); return $out;
-							}
-						}
-					}
+	{	$args = explode('|',$design);
+		$mdl = array_shift($args);
+		$fn = 'fn_'.$mdl;
+		ob_start();
+		global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$mdl;
+		if(function_exists($fn)) $fn($args);
+		else	{	$path = module_path.'/'.$mdl.'/'.$mdl.'.php';
+				if(is_file($path))
+				{	include($path); if(function_exists($fn)) $fn($mdlargs);
+				}
 			}
-		}
+		$currentPlugin=$cplg;
+		$out = ob_get_contents(); ob_end_clean();
+		setDesignCache($design,$out); return $out;
 	}
 
 	// design is finally not found !
@@ -323,16 +303,7 @@ function getDesign($design)
 	{	// css error msg
 		addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info
-		$out = '<p>design <span class="red bi">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
-		// maybe a plugin ? the case, draw plugin info too
-		{	$mdl = explode('|',$design);
-			if(isset($mdl[0]))
-			{	$mdl = $mdl[0];
-				$mdlargs = getArgs($design,$mdl.'|','|');
-				if($mdlargs[0] > 0) $out.= '<span class="bi">seen plugin</span> <span class="bi red">'.$mdl.'</span>, please check <span class="bi">'.module_path.'/'.$mdl.'/'.$mdl.'.php</span> plugin file, and his <span class="bi">fn_'.$mdl.'($args)</span> function.';
-			}
-		}
-		return $out;
+		return '<p>design <span class="red big">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
 	} else return '';
 }
 
@@ -340,11 +311,10 @@ function getCurrentPlugin(){ global $currentPlugin; return $currentPlugin; }
 function getCurrentPluginUrl(){ global $currentPlugin; return site_url.module_path.'/'.$currentPlugin.'/'; }
 
 function needPlugin($plg)
-{	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
-	if(function_exists($fn)) { $currentPlugin=$cplg; return true; }
+{	$fn = 'fn_'.$plg;
+	if(function_exists($fn)) return true;
 	$path = site_full_path.'/'.module_path.'/'.$plg.'/'.$plg.'.php';
-	if(is_file($path)) { include($path); $currentPlugin=$cplg; return true; }
-	$currentPlugin=$cplg; return false;
+	if(is_file($path)) { include($path); return true; } return false;
 }
 
 function callPlugin($plg,$args)

@@ -11,7 +11,7 @@
 include 'config.php';
 /* *********************.  ..**/
 
-global $nofollow,$noDesignCache,$noDesignCacheUsed,$renderInclude,$redis,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin;
+global $nofollow,$noDesignCache,$noDesignCacheUsed,$renderInclude,$redis,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
 
 if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 $redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
@@ -31,10 +31,9 @@ function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderIn
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
 
+// /* generate next line */ foreach($renderWords as $word){ print('function addTo'.ucfirst($word).'($t){addToRender(\''.$word.'\',$t);}function set'.ucfirst($word).'($t){setRender(\''.$word.'\',$t);}$renderInclude[\''.$word.'\']=\'\';'); } die();
 function addToHead($t){addToRender('head',$t);}function setHead($t){setRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}function setJs($t){setRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}function setJquery($t){setRender('jquery',$t);}$renderInclude['jquery']='';function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToStyle($t){addToRender('style',$t);}function setStyle($t){setRender('style',$t);}$renderInclude['style']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';function addToBody($t){addToRender('body',$t);}function setBody($t){setRender('body',$t);}$renderInclude['body']='';
-//foreach($renderWords as $word){ print('function addTo'.ucfirst($word).'($t){addToRender(\''.$word.'\',$t);}function set'.ucfirst($word).'($t){setRender(\''.$word.'\',$t);}$renderInclude[\''.$word.'\']=\'\';'); } die();
 
-global $filesinc; $filesinc = array();
 function addToRenderOnce($word,$id,$txt)
 {	static $filesinc, $loaded = 0;
 	global $currentDesign;
@@ -214,7 +213,6 @@ function getArgs($string,$word,$separator)
 	}	return array(0);
 }
 
-global $design_cache;
 function noDesignCache(){global $noDesignCache;$noDesignCache=1;}
 function setDesignCache($design,$content)
 {	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;

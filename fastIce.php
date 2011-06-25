@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce alpha 0.6.5 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce alpha 0.6.9 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -10,21 +10,26 @@
 include 'config.php';
 /* *********************.  ..**/
 
-global $nofollow,$noDesignCache,$noDesignCacheUsed,$renderInclude,$redis,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
+// declare and initialize global framework vars *
+global $redis,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
+$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';
 
-if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
-$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
-
-function getLang(){global $currentLangage;return $currentLangage;}
-function getUrlPath(){global $urlPath;return $urlPath;}
-function getPageName(){global $seedKey;return $seedKey;}
-
+// define info not user dependent *
 define ('site_full_path',dirname(__FILE__));
 define ('site_full_url','http://'.domain_name.site_url);
 
-$nofollow=0;$noDesignCache=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';$noDesignCacheUsed=0;
+// check php-redis is loaded into php api *
+if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 
-/* additionnal keywords for render */
+// connect to redis-server *
+$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
+
+// function to retrieve page and url info *
+function getLang(){global $currentLangage;return $currentLangage;} // return the current used language
+function getUrlPath(){global $urlPath;return $urlPath;} // return current brut url args with '/', example : 'toto/titi/tata'
+function getPageName(){global $seedKey;return $seedKey;} // return current page name, example : 'index'
+
+// additional keywords for render *
 function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/['.$word,$renderInclude[$word]); setDesignCache($currentDesign.'/[addition',true); }
 function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/['.$word,$txt); setDesignCache($currentDesign.'/[addition',true); }
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
@@ -46,17 +51,19 @@ function addToRenderOnce($word,$id,$txt)
 	setDesignCache(':filesinc',serialize($filesinc)); addToRender($word,$txt);
 }
 
+// include or insert into head, once, a js or css file *
 function includeJs($path){addToRenderOnce('head',$path,'<script type="text/javascript" src="'.site_url.$path.'"></script>');}
 function includeCss($path){addToRenderOnce('head',$path,'<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />');}
 function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
+// master function, will return the complete page ready to be echo *
 function renderPage($url,$langage,$upath,$callback=false)
 {	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey;
 
-	$currentLangage=$langage; $urlPath=$upath;
+	$currentLangage=$langage; $urlPath=$upath; $designPath=$url; $commonDesignPath=''; $seedPath=$urlPath.'/'.$url; $seedKey=$url; // fill global vars
 
-	if($langage!=defaultLangage)
+	if($langage!=defaultLangage) // generate canonical url
 	{	$canonicalurl=site_full_url.$langage.'/';
 		if($upath != '') $canonicalurl.=$upath.'/';
 	} else
@@ -64,17 +71,18 @@ function renderPage($url,$langage,$upath,$callback=false)
 		if($upath != '') $canonicalurl.=$upath.'/';
 	}
 
-	$designPath=$url;
-	$commonDesignPath='';
-	$seedPath=$urlPath.'/'.$url;
-	$seedKey=$url;
-
+	// check cache manual deletion, or automatic, if user is logged
 	if(isset($_GET['f5']) || isset($_SESSION['user']))
 	{ $redis->delete(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
-	} else if(isset($_GET['deleteCache'])){$cache = $redis->keys(redisPrefix.':designCache:*');foreach($cache as $c)$redis->delete($c);}
-
+	} else	if(isset($_GET['deleteCache'])) // complete cache destruction
+		{	$cache = $redis->keys(redisPrefix.':designCache:*');
+			foreach($cache as $c) $redis->delete($c);
+		}
+	
+	// get page cache
 	$design_cache = $redis->hgetall(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
 
+	// if page cache contain gzip entry, directly return it.
 	if(isset($design_cache['gzip']))
 	{	// complete page cache in gz
 		header("X-Compression: gzip");
@@ -82,6 +90,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 		exit($design_cache['gzip']);
 	}
 
+	// if page specific .ini file was never loaded, parse it and save content into cache.
 	if(!isset($design_cache['ini:loaded'])) // redis page info not set
 	{	$page_opt = array('loaded'=>1);
 		$path = template.'/'.$url.'/'.$url.'.ini';
@@ -91,12 +100,10 @@ function renderPage($url,$langage,$upath,$callback=false)
 		$redis->hMset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$outarray);
 	}
 
-	if(!isset($design_cache['ini:skeleton'])) $design_cache['ini:skeleton'] = 'normal';
-	if(!isset($design_cache['ini:title'])) $design_cache['ini:title'] = defaultTitle;
-	if(!isset($design_cache['ini:keywords'])) $design_cache['ini:keywords'] = defaultKeywords;
-	if(!isset($design_cache['ini:description'])) $design_cache['ini:description'] = defaultDescription;
-	if(!isset($design_cache['ini:meta'])) $design_cache['ini:meta'] = defaultMeta;
+	// check cache content of .ini entry, if not set, define at default.
+	if(!isset($design_cache['ini:skeleton'])) $design_cache['ini:skeleton'] = defaultSkeletonName;
 
+	// check page skeleton was loaded, else, load and cache it.
 	if(!isset($design_cache['ini:sk']))
 	{	$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
 		if(is_file($path))
@@ -104,78 +111,92 @@ function renderPage($url,$langage,$upath,$callback=false)
 		} else	$page = defaultSkeleton;
 	} else $page = $design_cache['ini:sk'];
 
-	$page = parsePage($url,$page); // get brut html from parser
+	// launch page part parsing, seed is skeleton
+	$page = parsePage($url,$page);
 
+	// if anywhere parsing was need to let page part as this, replace parse maker with page part one.
 	if($need_fix_name) $page = str_replace('[$$]','§', $page);
 
 	if($callback !== false) $callback(&$page); // any last chance callback ?
 
 	// verifies and assign page final info
-	if(empty($renderInclude['title'])) $renderInclude['title'] = $design_cache['ini:title'];
-	if(empty($renderInclude['keywords'])) $renderInclude['keywords'] = $design_cache['ini:keywords'];
-	if(empty($renderInclude['description'])) $renderInclude['description'] = $design_cache['ini:description'];
-	if(empty($renderInclude['meta'])) $renderInclude['meta'] = $design_cache['ini:meta'];
+	if(empty($renderInclude['title']))
+	{	if(isset($design_cache['ini:title']))
+			$renderInclude['title'] = $design_cache['ini:title'];
+		else	$renderInclude['title'] = defaultTitle;
+	}
 
-	// generate head render insertion
+	if(empty($renderInclude['keywords']))
+	{	if(!isset($design_cache['ini:keywords']))
+			$renderInclude['keywords'] = $design_cache['ini:keywords'];
+		else	$renderInclude['keywords'] = defaultKeywords;
+	}
+
+	if(empty($renderInclude['description']))
+	{	if(!isset($design_cache['ini:description']))
+			$renderInclude['description'] = $design_cache['ini:description'];
+		else	$renderInclude['description'] = defaultDescription;
+	}
+
+	if(empty($renderInclude['meta']))
+	{	if(!isset($design_cache['ini:meta']))
+			$renderInclude['meta'] = $design_cache['ini:meta'];
+		else	$renderInclude['meta'] = defaultMeta;
+	}
+
+	// generate head insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
 	$renderInclude['head']  = $renderInclude['meta'].$renderInclude['head'].'[js]';
 	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
 
-	// is page not js free ?
-	if(!empty($renderInclude['js']) || !empty($renderInclude['jquery']))
+	// generate complete brut page, depend on js is used or not
+	if(empty($renderInclude['js']) && empty($renderInclude['jquery'])) $renderInclude['js']='';  // js free
+	 else // js used
 	{	$renderInclude['js'] = '<script type="text/javascript">'.$renderInclude['js'].'$(document).ready(function(){'.$renderInclude['jquery'].'});</script>';
+		if(!$noDesignCacheUsed && extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
+	}
 
-		// the page will be fully in cache !
-		if(!$noDesignCacheUsed)
-		{	// try to minifies the javascript
-			if(extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
+	$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
 
-			// fill page info, script and other additions
-			$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+	if(enable_gz_compression && !$noDesignCacheUsed) // the page is fully in cache
+	{	// gz the output, full compression
+		$completePage =  gzencode($completePage,9);
 
-			// gz the output, full compression
-			$completePage =  gzencode($completePage,9);
-
-			// global cache save of the gz data
-			global $redis,$seedPath,$currentLangage;
-			$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
-			$redis->del($key); // delete page cache key
-			$redis->hset($key,'gzip',$completePage); // write the page cache key with only the gz data
-			
-			// send gz header and return the page
-			header("X-Compression: gzip");
-			header("Content-Encoding: gzip");
-			return $completePage;
-		}
-
-		$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
-
-		if(gz_compression) // out gz compression is forced
-		{	$completePage = gzencode($completePage,gz_compression);
-			// send gz header
-			header("X-Compression: gzip");
-			header("Content-Encoding: gzip");
-		}
-
+		// global cache save of the gz data
+		global $redis,$seedPath,$currentLangage;
+		$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
+		$redis->del($key); // delete page cache key
+		$redis->hset($key,'gzip',$completePage); // write the page cache key with only the gz data
+		
+		// send gz header and return the page
+		header("X-Compression: gzip");
+		header("Content-Encoding: gzip");
 		return $completePage;
 	}
 
-	// page is js free !
-	return str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,''),$page);
+	if(enable_gz_compression && gz_compression) // out gz compression is forced
+	{	$completePage = gzencode($completePage,gz_compression);
+		// send gz header
+		header("X-Compression: gzip");
+		header("Content-Encoding: gzip");
+	}
+
+	return $completePage;
 }
 
+// recursive page parsing function, work on skeleton and search for §part§ *
 function parsePage($key,$out=false)
 {	global $global_current_file,$designPath,$commonDesignPath,$renderInclude;
 
  	$dpath = $designPath; $cdpath = $commonDesignPath;
 	$global_current_file = $key;
 
-	if($out===false)
+	if($out === false)
 	{	$out = getDesign($key);
 		$designPath .= '/'.$key; $commonDesignPath .= '/'.$key;
 	}
 
-	if($out!==false)
+	if($out !== false)
 	{	$offset=0;
 		while(1)
 		{	$start = strpos($out,'§',$offset);
@@ -197,20 +218,30 @@ function parsePage($key,$out=false)
 	return $out;
 }
 
-function noDesignCache(){global $noDesignCache;$noDesignCache=1;}
-function setDesignCache($design,$content)
-{	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed;
-	if(!$noDesignCache && !isset($_SESSION['user']))
-	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
-	} else { $noDesignCacheUsed=1; }
+// declare current page part to NOT be in cache, if arg is 0, ALL next part will NOT be in cache too *
+function noDesignCache($nextOnly=1)
+{	global $noDesignCache; $noDesignCache=1;
+	if(!($nextOnly || $noDesignCacheAtAll))
+	{	global $noDesignCacheAtAll; $noDesignCacheAtAll=1;
+	}
 }
 
+// put anything in cache, at the current page part tree
+function setDesignCache($design,$content)
+{	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed,$noDesignCacheAtAll;
+	if(!($noDesignCacheAtAll || $noDesignCache || isset($_SESSION['user'])))
+	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
+	} else	$noDesignCacheUsed=1;
+}
+
+// get anything from cache, at the current page part tree
 function getDesignCache($design)
 {	global $design_cache,$designPath,$redis;
 	$k = $designPath.'/'.$design; if(isset($design_cache[$k])) return $design_cache[$k];
 	return false;
 }
 
+// will retrieve a page part, from cache, files or plugin
 function getDesign($design)
 {	if(empty($design)) return ''; $d = getDesignCache($design); if($d !== false) return $d;
 	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign,$designPath,$commonDesignPath,$currentLangage;
@@ -218,8 +249,7 @@ function getDesign($design)
 	if($design == 'nofolow'){ $nofollow=1; $need_fix_name=1; return ''; } else if($design == 'folow'){ $nofollow=0; return ''; } if($nofollow) { return '[$$]'.$design.'[$$]'; }
 
 	if(false === strstr($design,'|'))
-	{
-		// search design in the template folder, absolute path with lang prefix
+	{	// search design in the template folder, absolute path with lang prefix
 		$path = template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php'; // template folder
 		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
@@ -307,9 +337,13 @@ function getDesign($design)
 	} else return '';
 }
 
+// get current plugin name, designed to be used from plugin
 function getCurrentPlugin(){ global $currentPlugin; return $currentPlugin; }
+
+// get current plugin http emplacement, designed to be used from plugin for ajax plugin neighbor files call
 function getCurrentPluginUrl(){ global $currentPlugin; return site_url.module_path.'/'.$currentPlugin.'/'; }
 
+// will load a plugin if this one is not loaded
 function needPlugin($plg)
 {	$fn = 'fn_'.$plg;
 	if(function_exists($fn)) return true;
@@ -317,6 +351,7 @@ function needPlugin($plg)
 	if(is_file($path)) { include($path); return true; } return false;
 }
 
+// launch a plugin
 function callPlugin($plg,$args)
 {	if(false === needPlugin($plg)) return false;
 	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
@@ -324,11 +359,10 @@ function callPlugin($plg,$args)
 	$currentPlugin=$cplg; return $out;
 }
 
+// will fill a design with some data, generic function, syntax is same as page part, but $ instead of §. some callback can be launch to manage data between get and draw.
 function fillDesign($data, $design, $callback=false)
-{	global $noDesignCache; $savenodesign=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$savenodesign;
-	$keywords = array();
-	$offset=0; // search all keywords in the design
-	$arrayin = array();
+{	global $noDesignCache; $save=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$save;
+	$keywords = array(); $offset = 0; $arrayin = array(); $out = '';
 
 	while(1)
 	{	$start = strpos($design,'$',$offset);
@@ -344,7 +378,6 @@ function fillDesign($data, $design, $callback=false)
 		} $offset = $end+1;
 	}
 
-	$out = '';
 	if($callback !== false)
 	{	$n=0;
 		if(is_array($callback)) // callback is function array
@@ -357,9 +390,8 @@ function fillDesign($data, $design, $callback=false)
 				},$keywords),$design); $n++;
 			}
 		}
-	      else
-		{	// callback is a generic function, who get word and complete data
-			foreach($data as $k => $dta)
+	      else // callback is a generic function, who get word and complete data
+		{	foreach($data as $k => $dta)
 			{	$out .= str_replace($arrayin,array_map(function($w)use($callback,$dta,$n,$k){return $callback($w,$dta,$n,$k);},$keywords),$design); $n++;
 			}
 		}
@@ -368,6 +400,7 @@ function fillDesign($data, $design, $callback=false)
 	return $out;
 }
 
+// function designed to check user right, will be in plugin in future.
 function isUserPrivilege($prv)
 { return ( isset($_SESSION['user']) && (( isset($_SESSION['user']['right:all']) && !isset($_SESSION['user']['right:'.$prv]) ) || ( isset($_SESSION['user']['right:'.$prv]) &&  $_SESSION['user']['right:'.$prv] )));
 }

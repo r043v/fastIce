@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce alpha 0.6.9 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.7.0 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -11,8 +11,8 @@ include 'config.php';
 /* *********************.  ..**/
 
 // declare and initialize global framework vars *
-global $redis,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
-$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';
+global $redis,$globalCacheSave,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
+$globalCacheSave=array();$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';
 
 // define info not user dependent *
 define ('site_full_path',dirname(__FILE__));
@@ -59,7 +59,7 @@ function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path)
 
 // master function, will return the complete page ready to be echo *
 function renderPage($url,$langage,$upath,$callback=false)
-{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey;
+{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey, $globalCacheSave;
 
 	$currentLangage=$langage; $urlPath=$upath; $designPath=$url; $commonDesignPath=''; $seedPath=$urlPath.'/'.$url; $seedKey=$url; // fill global vars
 
@@ -84,9 +84,9 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	// if page cache contain gzip entry, directly return it.
 	if(isset($design_cache['gzip']))
-	{	// complete page cache in gz
-		header("X-Compression: gzip");
+	{	header("X-Compression: gzip");
 		header("Content-Encoding: gzip");
+		session_write_close();
 		exit($design_cache['gzip']);
 	}
 
@@ -95,9 +95,8 @@ function renderPage($url,$langage,$upath,$callback=false)
 	{	$page_opt = array('loaded'=>1);
 		$path = template.'/'.$url.'/'.$url.'.ini';
 		if(is_file($path)) $page_opt = array_merge(parse_ini_file($path),$page_opt);
-		$outarray = array(); foreach($page_opt as $name=>$value) $outarray['ini:'.$name] = $value;
-		$design_cache = array_merge($design_cache,$outarray);
-		$redis->hMset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$outarray);
+		$globalCacheSave = array(); foreach($page_opt as $name=>$value) $globalCacheSave['ini:'.$name] = $value;
+		$design_cache = array_merge($design_cache,$globalCacheSave);
 	}
 
 	// check cache content of .ini entry, if not set, define at default.
@@ -167,12 +166,16 @@ function renderPage($url,$langage,$upath,$callback=false)
 		$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
 		$redis->del($key); // delete page cache key
 		$redis->hset($key,'gzip',$completePage); // write the page cache key with only the gz data
-		
+
 		// send gz header and return the page
 		header("X-Compression: gzip");
 		header("Content-Encoding: gzip");
 		return $completePage;
 	}
+
+	// save all the page cache in redis, in one request
+	if(!empty($globalCacheSave))
+		$redis->hMset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
 
 	if(enable_gz_compression && gz_compression) // out gz compression is forced
 	{	$completePage = gzencode($completePage,gz_compression);
@@ -226,22 +229,22 @@ function noDesignCache($nextOnly=1)
 	}
 }
 
-// put anything in cache, at the current page part tree
+// put anything in cache, at the current page part tree *
 function setDesignCache($design,$content)
-{	global $noDesignCache,$seedPath,$designPath,$currentLangage,$redis,$noDesignCacheUsed,$noDesignCacheAtAll;
+{	global $noDesignCache,$designPath,$noDesignCacheUsed,$noDesignCacheAtAll,$globalCacheSave;
 	if(!($noDesignCacheAtAll || $noDesignCache || isset($_SESSION['user'])))
-	{	$redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$designPath.'/'.$design,$content);
+	{	$globalCacheSave[$designPath.'/'.$design]=$content;
 	} else	$noDesignCacheUsed=1;
 }
 
-// get anything from cache, at the current page part tree
+// get anything from cache, at the current page part tree *
 function getDesignCache($design)
 {	global $design_cache,$designPath,$redis;
 	$k = $designPath.'/'.$design; if(isset($design_cache[$k])) return $design_cache[$k];
 	return false;
 }
 
-// will retrieve a page part, from cache, files or plugin
+// will retrieve a page part, from cache, files or plugin *
 function getDesign($design)
 {	if(empty($design)) return ''; $d = getDesignCache($design); if($d !== false) return $d;
 	global $nofollow,$last_design,$need_fix_name,$redis,$noDesignCache,$currentDesign,$designPath,$commonDesignPath,$currentLangage;
@@ -337,13 +340,13 @@ function getDesign($design)
 	} else return '';
 }
 
-// get current plugin name, designed to be used from plugin
+// get current plugin name, designed to be used from plugin *
 function getCurrentPlugin(){ global $currentPlugin; return $currentPlugin; }
 
-// get current plugin http emplacement, designed to be used from plugin for ajax plugin neighbor files call
+// get current plugin http emplacement, designed to be used from plugin for ajax plugin neighbor files call *
 function getCurrentPluginUrl(){ global $currentPlugin; return site_url.module_path.'/'.$currentPlugin.'/'; }
 
-// will load a plugin if this one is not loaded
+// will load a plugin if this one is not loaded *
 function needPlugin($plg)
 {	$fn = 'fn_'.$plg;
 	if(function_exists($fn)) return true;
@@ -351,7 +354,7 @@ function needPlugin($plg)
 	if(is_file($path)) { include($path); return true; } return false;
 }
 
-// launch a plugin
+// launch a plugin *
 function callPlugin($plg,$args)
 {	if(false === needPlugin($plg)) return false;
 	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
@@ -359,7 +362,7 @@ function callPlugin($plg,$args)
 	$currentPlugin=$cplg; return $out;
 }
 
-// will fill a design with some data, generic function, syntax is same as page part, but $ instead of §. some callback can be launch to manage data between get and draw.
+// will fill a design with some data, generic function, syntax is same as page part, but $ instead of §. some callback can be launch to manage data between get and draw. *
 function fillDesign($data, $design, $callback=false)
 {	global $noDesignCache; $save=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$save;
 	$keywords = array(); $offset = 0; $arrayin = array(); $out = '';
@@ -400,7 +403,7 @@ function fillDesign($data, $design, $callback=false)
 	return $out;
 }
 
-// function designed to check user right, will be in plugin in future.
+// function designed to check user right, will be in plugin in future. *
 function isUserPrivilege($prv)
 { return ( isset($_SESSION['user']) && (( isset($_SESSION['user']['right:all']) && !isset($_SESSION['user']['right:'.$prv]) ) || ( isset($_SESSION['user']['right:'.$prv]) &&  $_SESSION['user']['right:'.$prv] )));
 }

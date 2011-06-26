@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.7.0 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.7.1 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -30,8 +30,8 @@ function getUrlPath(){global $urlPath;return $urlPath;} // return current brut u
 function getPageName(){global $seedKey;return $seedKey;} // return current page name, example : 'index'
 
 // additional keywords for render *
-function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/['.$word,$renderInclude[$word]); setDesignCache($currentDesign.'/[addition',true); }
-function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/['.$word,$txt); setDesignCache($currentDesign.'/[addition',true); }
+function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/:'.$word,$renderInclude[$word]); setDesignCache($currentDesign.'/:addition',true); }
+function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] = $txt; setDesignCache($currentDesign.'/:'.$word,$txt); setDesignCache($currentDesign.':[addition',true); }
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
 
@@ -73,42 +73,40 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	// check cache manual deletion, or automatic, if user is logged
 	if(isset($_GET['f5']) || isset($_SESSION['user']))
-	{ $redis->delete(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
+	{ $redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
 	} else	if(isset($_GET['deleteCache'])) // complete cache destruction
-		{	$cache = $redis->keys(redisPrefix.':designCache:*');
+		{	$cache = $redis->keys(redisPrefix.':cache:*');
 			foreach($cache as $c) $redis->delete($c);
 		}
 	
 	// get page cache
-	$design_cache = $redis->hgetall(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath);
+	$design_cache = $redis->hgetall(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
 
 	// if page cache contain gzip entry, directly return it.
-	if(isset($design_cache['gzip']))
-	{	header("X-Compression: gzip");
-		header("Content-Encoding: gzip");
-		session_write_close();
-		exit($design_cache['gzip']);
+	if(isset($design_cache['html']))
+	{	if(isset($design_cache['gzip'])) { header("X-Compression: gzip"); header("Content-Encoding: gzip"); }
+		return $design_cache['html'];
 	}
 
 	// if page specific .ini file was never loaded, parse it and save content into cache.
-	if(!isset($design_cache['ini:loaded'])) // redis page info not set
+	if(!isset($design_cache[':loaded'])) // redis page info not set
 	{	$page_opt = array('loaded'=>1);
 		$path = template.'/'.$url.'/'.$url.'.ini';
 		if(is_file($path)) $page_opt = array_merge(parse_ini_file($path),$page_opt);
-		$globalCacheSave = array(); foreach($page_opt as $name=>$value) $globalCacheSave['ini:'.$name] = $value;
+		$globalCacheSave = array(); foreach($page_opt as $name=>$value) $globalCacheSave[':'.$name] = $value;
 		$design_cache = array_merge($design_cache,$globalCacheSave);
 	}
 
-	// check cache content of .ini entry, if not set, define at default.
-	if(!isset($design_cache['ini:skeleton'])) $design_cache['ini:skeleton'] = defaultSkeletonName;
+	// check cache content of .ini entry for skeleton name, if not set, define at default.
+	if(!isset($design_cache[':skeleton'])) $design_cache[':skeleton'] = defaultSkeletonName;
 
 	// check page skeleton was loaded, else, load and cache it.
-	if(!isset($design_cache['ini:sk']))
-	{	$path = template.'/'.common_path.'/skeleton/'.$design_cache['ini:skeleton'].'.html';
+	if(!isset($design_cache[':sk']))
+	{	$path = template.'/'.common_path.'/skeleton/'.$design_cache[':skeleton'].'.html';
 		if(is_file($path))
-		{	$page = file_get_contents($path); $redis->hset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,'ini:sk',$out);
+		{	$page = file_get_contents($path); $redis->hset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,':sk',$out);
 		} else	$page = defaultSkeleton;
-	} else $page = $design_cache['ini:sk'];
+	} else $page = $design_cache[':sk'];
 
 	// launch page part parsing, seed is skeleton
 	$page = parsePage($url,$page);
@@ -120,26 +118,26 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	// verifies and assign page final info
 	if(empty($renderInclude['title']))
-	{	if(isset($design_cache['ini:title']))
-			$renderInclude['title'] = $design_cache['ini:title'];
+	{	if(isset($design_cache[':title']))
+			$renderInclude['title'] = $design_cache[':title'];
 		else	$renderInclude['title'] = defaultTitle;
 	}
 
 	if(empty($renderInclude['keywords']))
-	{	if(!isset($design_cache['ini:keywords']))
-			$renderInclude['keywords'] = $design_cache['ini:keywords'];
+	{	if(!isset($design_cache[':keywords']))
+			$renderInclude['keywords'] = $design_cache[':keywords'];
 		else	$renderInclude['keywords'] = defaultKeywords;
 	}
 
 	if(empty($renderInclude['description']))
-	{	if(!isset($design_cache['ini:description']))
-			$renderInclude['description'] = $design_cache['ini:description'];
+	{	if(!isset($design_cache[':description']))
+			$renderInclude['description'] = $design_cache[':description'];
 		else	$renderInclude['description'] = defaultDescription;
 	}
 
 	if(empty($renderInclude['meta']))
-	{	if(!isset($design_cache['ini:meta']))
-			$renderInclude['meta'] = $design_cache['ini:meta'];
+	{	if(!isset($design_cache[':meta']))
+			$renderInclude['meta'] = $design_cache[':meta'];
 		else	$renderInclude['meta'] = defaultMeta;
 	}
 
@@ -157,31 +155,28 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
 
-	if(enable_gz_compression && !$noDesignCacheUsed) // the page is fully in cache
-	{	// gz the output, full compression
-		$completePage =  gzencode($completePage,9);
+	if(!$noDesignCacheUsed) // the page is fully in cache
+	{	global $redis,$seedPath,$currentLangage;
+		$key = redisPrefix.':cache:'.$currentLangage.':'.$seedPath; // generate redis page cache key name
+		$redis->multi(Redis::PIPELINE)->del($key); // delete old key
 
-		// global cache save of the gz data
-		global $redis,$seedPath,$currentLangage;
-		$key = redisPrefix.':designCache:'.$currentLangage.':'.$seedPath;
-		$redis->del($key); // delete page cache key
-		$redis->hset($key,'gzip',$completePage); // write the page cache key with only the gz data
+		// if compression enabled, gz the output at full compression and add gz flag in the page cache.
+		if(enable_gz_compression)
+		{	$completePage =  gzencode($completePage,9);
+			$redis->hset($key,'gzip',1);
+			header("X-Compression: gzip"); header("Content-Encoding: gzip"); // send gz header
+		}
 
-		// send gz header and return the page
-		header("X-Compression: gzip");
-		header("Content-Encoding: gzip");
-		return $completePage;
+		// global page cache save and return the gz or html data.
+		$redis->hset($key,'html',$completePage)->exec(); return $completePage;
 	}
 
-	// save all the page cache in redis, in one request
-	if(!empty($globalCacheSave))
-		$redis->hMset(redisPrefix.':designCache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
+	// save all the page caches in redis, in one request
+	if(!empty($globalCacheSave)) $redis->hMset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
 
 	if(enable_gz_compression && gz_compression) // out gz compression is forced
 	{	$completePage = gzencode($completePage,gz_compression);
-		// send gz header
-		header("X-Compression: gzip");
-		header("Content-Encoding: gzip");
+		header("X-Compression: gzip"); header("Content-Encoding: gzip"); // send gz header
 	}
 
 	return $completePage;
@@ -214,8 +209,8 @@ function parsePage($key,$out=false)
 		}
 	}
 
-	// /* generate next line in brace content ! */ global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\'['.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
-	if(getDesignCache('[addition') !== false){ $d=getDesignCache('[head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache('[body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache('[js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache('[jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache('[title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('[meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache('[style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache('[keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache('[description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;} }
+	// /* generate next line in brace content ! */ global $renderWords,$renderInclude; foreach($renderWords as $w) print '$d=getDesignCache(\':'.$w.'\');if($d!==false){if(!isset($renderInclude[\''.$w.'\']))$renderInclude[\''.$w.'\']=$d;else $renderInclude[\''.$w.'\'].=$d;}';die();
+	if(getDesignCache(':addition') !== false){ $d=getDesignCache(':head');if($d!==false){if(!isset($renderInclude['head']))$renderInclude['head']=$d;else $renderInclude['head'].=$d;}$d=getDesignCache(':body');if($d!==false){if(!isset($renderInclude['body']))$renderInclude['body']=$d;else $renderInclude['body'].=$d;}$d=getDesignCache(':js');if($d!==false){if(!isset($renderInclude['js']))$renderInclude['js']=$d;else $renderInclude['js'].=$d;}$d=getDesignCache(':jquery');if($d!==false){if(!isset($renderInclude['jquery']))$renderInclude['jquery']=$d;else $renderInclude['jquery'].=$d;}$d=getDesignCache(':title');if($d!==false){if(!isset($renderInclude['title']))$renderInclude['title']=$d;else $renderInclude['title'].=$d;}$d=getDesignCache('meta');if($d!==false){if(!isset($renderInclude['meta']))$renderInclude['meta']=$d;else $renderInclude['meta'].=$d;}$d=getDesignCache(':style');if($d!==false){if(!isset($renderInclude['style']))$renderInclude['style']=$d;else $renderInclude['style'].=$d;}$d=getDesignCache(':keywords');if($d!==false){if(!isset($renderInclude['keywords']))$renderInclude['keywords']=$d;else $renderInclude['keywords'].=$d;}$d=getDesignCache(':description');if($d!==false){if(!isset($renderInclude['description']))$renderInclude['description']=$d;else $renderInclude['description'].=$d;} }
 
 	$designPath = $dpath; $commonDesignPath = $cdpath;
 	return $out;

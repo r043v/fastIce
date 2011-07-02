@@ -26,7 +26,6 @@ define('defaultSkeletonName','normal');
 define('defaultSkeleton','<!DOCTYPE html>
 <html lang="[lang]">
 	<head>	<meta charset="UTF-8" />
-		<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 		[head]
 		§head§
 	</head>

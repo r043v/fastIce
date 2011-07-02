@@ -124,19 +124,19 @@ function renderPage($url,$langage,$upath,$callback=false)
 	}
 
 	if(empty($renderInclude['keywords']))
-	{	if(!isset($design_cache[':keywords']))
+	{	if(isset($design_cache[':keywords']))
 			$renderInclude['keywords'] = $design_cache[':keywords'];
 		else	$renderInclude['keywords'] = defaultKeywords;
 	}
 
 	if(empty($renderInclude['description']))
-	{	if(!isset($design_cache[':description']))
+	{	if(isset($design_cache[':description']))
 			$renderInclude['description'] = $design_cache[':description'];
 		else	$renderInclude['description'] = defaultDescription;
 	}
 
 	if(empty($renderInclude['meta']))
-	{	if(!isset($design_cache[':meta']))
+	{	if(isset($design_cache[':meta']))
 			$renderInclude['meta'] = $design_cache[':meta'];
 		else	$renderInclude['meta'] = defaultMeta;
 	}
@@ -276,16 +276,16 @@ function getDesign($design)
 		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, just file, no path
-		$path = template.'/'.common_path.'/'.$design.'.php';
-		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+//		$path = template.'/'.common_path.'/'.$design.'.php';
+//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, just file, no path, lang prefix
-		$path = common_path.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+//		$path = common_path.'/'.$currentLangage.'.'.$design.'.php';
+//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common folder, just file, no path
-		$path = common_path.'/'.$design.'.php';
-		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+//		$path = common_path.'/'.$design.'.php';
+//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in constant files
 		global $global_constants,$seedPath,$seedKey;

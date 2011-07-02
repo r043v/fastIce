@@ -1,6 +1,5 @@
 <?php
 
-//$tstart = microtime(true);
 session_start();
 
 include 'fastIce.php';
@@ -20,7 +19,6 @@ else	$lang = defaultLangage;
 $page = renderPage($pageToShow,$lang,$urlPath);
 
 session_write_close();
-//print 'generating time : '.round((microtime(true)-$tstart)*1000,3).'<br>';
 
 exit($page);
 

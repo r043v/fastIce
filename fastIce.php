@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.7.1 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.7.2 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -153,7 +153,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 		if(!$noDesignCacheUsed && extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
 	}
 
-	$completePage = str_replace(array('[head]','[body]','[url]','[lang]','[js]'),array($renderInclude['head'],$renderInclude['body'],site_url,$currentLangage,$renderInclude['js']),$page);
+	$completePage = str_replace(array('[head]','[body]','[js]','[url]','[lang]'),array($renderInclude['head'],$renderInclude['body'],$renderInclude['js'],site_url,$currentLangage),$page);
 
 	if(!$noDesignCacheUsed) // the page is fully in cache
 	{	global $redis,$seedPath,$currentLangage;
@@ -263,29 +263,13 @@ function getDesign($design)
 		$path = template.'/'.common_path.$commonDesignPath.'/'.$design.'.php';
 		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
-		// search design in the common folder, absolute path with lang prefix
-		$path = common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php';
-		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
-
-		// search design in the common folder, absolute path
-		$path = common_path.$commonDesignPath.'/'.$design.'.php';
-		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
-
 		// search design in the common template folder, just file, no path, lang prefix
 		$path = template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php';
 		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, just file, no path
-//		$path = template.'/'.common_path.'/'.$design.'.php';
-//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
-
-		// search design in the common folder, just file, no path, lang prefix
-//		$path = common_path.'/'.$currentLangage.'.'.$design.'.php';
-//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
-
-		// search design in the common folder, just file, no path
-//		$path = common_path.'/'.$design.'.php';
-//		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+		$path = template.'/'.common_path.'/'.$design.'.php';
+		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
 
 		// search design in constant files
 		global $global_constants,$seedPath,$seedKey;
@@ -318,7 +302,7 @@ function getDesign($design)
 		if(function_exists($fn)) $fn($args);
 		else	{	$path = module_path.'/'.$mdl.'/'.$mdl.'.php';
 				if(is_file($path))
-				{	include($path); if(function_exists($fn)) $fn($mdlargs);
+				{	include($path); if(function_exists($fn)) $fn($args);
 				}
 			}
 		$currentPlugin=$cplg;

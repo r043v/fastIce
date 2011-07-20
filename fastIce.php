@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.7.2 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.7.3 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -104,7 +104,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 	if(!isset($design_cache[':sk']))
 	{	$path = template.'/'.common_path.'/skeleton/'.$design_cache[':skeleton'].'.html';
 		if(is_file($path))
-		{	$page = file_get_contents($path); $redis->hset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,':sk',$out);
+		{	$page = file_get_contents($path); $redis->hset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,':sk',$page);
 		} else	$page = defaultSkeleton;
 	} else $page = $design_cache[':sk'];
 
@@ -216,20 +216,20 @@ function parsePage($key,$out=false)
 	return $out;
 }
 
-// declare current page part to NOT be in cache, if arg is 0, ALL next part will NOT be in cache too *
-function noDesignCache($nextOnly=1)
+function noDesignCacheAtAll()
+{	global $noDesignCacheAtAll; $noDesignCacheAtAll=1;
+}
+
+function noDesignCache()
 {	global $noDesignCache; $noDesignCache=1;
-	if(!($nextOnly || $noDesignCacheAtAll))
-	{	global $noDesignCacheAtAll; $noDesignCacheAtAll=1;
-	}
 }
 
 // put anything in cache, at the current page part tree *
 function setDesignCache($design,$content)
 {	global $noDesignCache,$designPath,$noDesignCacheUsed,$noDesignCacheAtAll,$globalCacheSave;
-	if(!($noDesignCacheAtAll || $noDesignCache || isset($_SESSION['user'])))
-	{	$globalCacheSave[$designPath.'/'.$design]=$content;
-	} else	$noDesignCacheUsed=1;
+	if($noDesignCacheAtAll || $noDesignCache || isset($_SESSION['user']))
+		$noDesignCacheUsed=1;
+	else	$globalCacheSave[$designPath.'/'.$design]=$content;
 }
 
 // get anything from cache, at the current page part tree *
@@ -311,7 +311,7 @@ function getDesign($design)
 	}
 
 	// design is finally not found !
-	if(isUserPrivilege('show-error'))
+	if(!isUserPrivilege('show-error'))
 	{	// css error msg
 		addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info

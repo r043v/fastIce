@@ -311,7 +311,7 @@ function getDesign($design)
 	}
 
 	// design is finally not found !
-	if(!isUserPrivilege('show-error'))
+	if(isUserPrivilege('show-error'))
 	{	// css error msg
 		addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info

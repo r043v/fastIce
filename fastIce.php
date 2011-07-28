@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.7.3 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.7.4 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -14,7 +14,7 @@ include 'config.php';
 global $redis,$globalCacheSave,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
 $globalCacheSave=array();$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';
 
-// define info not user dependent *
+// define info not user dependant *
 define ('site_full_path',dirname(__FILE__));
 define ('site_full_url','http://'.domain_name.site_url);
 
@@ -22,7 +22,7 @@ define ('site_full_url','http://'.domain_name.site_url);
 if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 
 // connect to redis-server *
-$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage()).'</i>'; }
+$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage().'</i>'); }
 
 // function to retrieve page and url info *
 function getLang(){global $currentLangage;return $currentLangage;} // return the current used language
@@ -35,8 +35,8 @@ function setRender($word,$txt) { global $renderInclude,$currentDesign; $renderIn
 function extendRenderWords($word) { if(!isset($renderWords[$word])) array_push($renderWords,$word); }
 global $renderWords; $renderWords = array('head','js','jquery','title','meta','style','keywords','description','body');
 
-// /* generate next line */ foreach($renderWords as $word){ print('function addTo'.ucfirst($word).'($t){addToRender(\''.$word.'\',$t);}function set'.ucfirst($word).'($t){setRender(\''.$word.'\',$t);}$renderInclude[\''.$word.'\']=\'\';'); } die();
-function addToHead($t){addToRender('head',$t);}function setHead($t){setRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}function setJs($t){setRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}function setJquery($t){setRender('jquery',$t);}$renderInclude['jquery']='';function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToStyle($t){addToRender('style',$t);}function setStyle($t){setRender('style',$t);}$renderInclude['style']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';function addToBody($t){addToRender('body',$t);}function setBody($t){setRender('body',$t);}$renderInclude['body']='';
+function addToHead($t){addToRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}$renderInclude['jquery']='';function addToStyle($t){addToRender('style',$t);}$renderInclude['style']='';function addToBody($t){addToRender('body',$t);}$renderInclude['body']='';
+function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';
 
 function addToRenderOnce($word,$id,$txt)
 {	static $filesinc, $loaded = 0;
@@ -52,15 +52,14 @@ function addToRenderOnce($word,$id,$txt)
 }
 
 // include or insert into head, once, a js or css file *
-function includeJs($path){addToRenderOnce('head',$path,'<script type="text/javascript" src="'.site_url.$path.'"></script>');}
-function includeCss($path){addToRenderOnce('head',$path,'<link rel="stylesheet" type="text/css" href="'.site_url.$path.'" />');}
+function includeJs($path){if(false === strstr($path,'http://')) $upath=site_url.$path; else $upath=$path; addToRenderOnce('head',$path,'<script type="text/javascript" src="'.$upath.'"></script>');}
+function includeCss($path){if(false === strstr($path,'http://')) $upath=site_url.$path; else $upath=$path; addToRenderOnce('head',$path,'<link rel="stylesheet" type="text/css" href="'.$upath.'" />');}
 function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
 // master function, will return the complete page ready to be echo *
 function renderPage($url,$langage,$upath,$callback=false)
-{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey, $globalCacheSave;
-
+{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey, $globalCacheSave, $noDesignCacheAtAll; $noDesignCacheAtAll;
 	$currentLangage=$langage; $urlPath=$upath; $designPath=$url; $commonDesignPath=''; $seedPath=$urlPath.'/'.$url; $seedKey=$url; // fill global vars
 
 	if($langage!=defaultLangage) // generate canonical url
@@ -93,6 +92,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 	{	$page_opt = array('loaded'=>1);
 		$path = template.'/'.$url.'/'.$url.'.ini';
 		if(is_file($path)) $page_opt = array_merge(parse_ini_file($path),$page_opt);
+		else $page_opt = array_merge($redis->hgetAll(redisPrefix.':page:'.$url.':ini'),$page_opt);
 		$globalCacheSave = array(); foreach($page_opt as $name=>$value) $globalCacheSave[':'.$name] = $value;
 		$design_cache = array_merge($design_cache,$globalCacheSave);
 	}
@@ -155,24 +155,26 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	$completePage = str_replace(array('[head]','[body]','[js]','[url]','[lang]'),array($renderInclude['head'],$renderInclude['body'],$renderInclude['js'],site_url,$currentLangage),$page);
 
-	if(!$noDesignCacheUsed) // the page is fully in cache
-	{	global $redis,$seedPath,$currentLangage;
-		$key = redisPrefix.':cache:'.$currentLangage.':'.$seedPath; // generate redis page cache key name
-		$redis->multi(Redis::PIPELINE)->del($key); // delete old key
+	if(!$noDesignCacheAtAll)
+	{	if(!$noDesignCacheUsed) // the page is fully in cache
+		{	global $redis,$seedPath,$currentLangage;
+			$key = redisPrefix.':cache:'.$currentLangage.':'.$seedPath; // generate redis page cache key name
+			$redis->multi(Redis::PIPELINE)->del($key); // delete old key
 
-		// if compression enabled, gz the output at full compression and add gz flag in the page cache.
-		if(enable_gz_compression)
-		{	$completePage =  gzencode($completePage,9);
-			$redis->hset($key,'gzip',1);
-			header("X-Compression: gzip"); header("Content-Encoding: gzip"); // send gz header
+			// if compression enabled, gz the output at full compression and add gz flag in the page cache.
+			if(enable_gz_compression)
+			{	$completePage =  gzencode($completePage,9);
+				$redis->hset($key,'gzip',1);
+				header("X-Compression: gzip"); header("Content-Encoding: gzip"); // send gz header
+			}
+
+			// global page cache save and return the gz or html data.
+			$redis->hset($key,'html',$completePage)->exec(); return $completePage;
 		}
 
-		// global page cache save and return the gz or html data.
-		$redis->hset($key,'html',$completePage)->exec(); return $completePage;
-	}
-
-	// save all the page caches in redis, in one request
-	if(!empty($globalCacheSave)) $redis->hMset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
+		// save all the page caches in redis, in one request
+		if(!empty($globalCacheSave)) $redis->hMset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
+	} else $redis->del(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
 
 	if(enable_gz_compression && gz_compression) // out gz compression is forced
 	{	$completePage = gzencode($completePage,gz_compression);
@@ -224,6 +226,13 @@ function noDesignCache()
 {	global $noDesignCache; $noDesignCache=1;
 }
 
+// put anything in cache *
+function setDesign($design,$content)
+{	global $designPath,$design_cache;
+	$design_cache[$designPath.'/'.$design]=$content;
+	//die($designPath.'/'.$design);
+}
+
 // put anything in cache, at the current page part tree *
 function setDesignCache($design,$content)
 {	global $noDesignCache,$designPath,$noDesignCacheUsed,$noDesignCacheAtAll,$globalCacheSave;
@@ -254,6 +263,10 @@ function getDesign($design)
 		// search design in the template folder, absolute path
 		$path = template.'/'.$designPath.'/'.$design.'.php'; // template folder
 		if(is_file($path)){ob_start();include($path);$d=ob_get_contents();ob_end_clean();setDesignCache($design,$d);return $d;}
+
+		// search design in redis keys, absolute path with lang prefix
+		$path = redisPrefix.':design:'.template.'/'.$designPath.'/'.$currentLangage.'.'.$design;
+		$d = $redis->get($path); if(false !== $d){setDesignCache($design,$d);return $d;}
 
 		// search design in the common template folder, absolute path with lang prefix
 		$path = template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php';

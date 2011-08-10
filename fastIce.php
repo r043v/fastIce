@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.7.4 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.8 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -143,7 +143,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 
 	// generate head insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
-	$renderInclude['head']  = $renderInclude['meta'].$renderInclude['head'].'[js]';
+	$renderInclude['head']  = $renderInclude['meta'].'<script type="text/javascript" src="'.jqueryLocation.'"></script>'.$renderInclude['head'].'[js]';
 	if(!empty($renderInclude['style'])) $renderInclude['head'] .= '<style>'.$renderInclude['style'].'</style>';
 
 	// generate complete brut page, depend on js is used or not
@@ -399,5 +399,10 @@ function fillDesign($data, $design, $callback=false)
 function isUserPrivilege($prv)
 { return ( isset($_SESSION['user']) && (( isset($_SESSION['user']['right:all']) && !isset($_SESSION['user']['right:'.$prv]) ) || ( isset($_SESSION['user']['right:'.$prv]) &&  $_SESSION['user']['right:'.$prv] )));
 }
+
+function isUserLogued(){return isset($_SESSION['user']);}
+function adminSecurityCheck(){ if(!isset($_SESSION['user'])) die('not logued in.'); }
+function insertAdminHeadNeed(){ return '<link rel="stylesheet" type="text/css" href="'.site_url.module_path.'/administration/style.iframe.css" /><script type="text/javascript" src="'.str_replace('[url]',site_url,jqueryLocation).'"></script>'; }
+function insertJquery(){ return '<script type="text/javascript" src="'.str_replace('[url]',site_url,jqueryLocation).'"></script>'; }
 
 ?>

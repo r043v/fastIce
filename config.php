@@ -2,7 +2,7 @@
 
 // default page langage and php localisation
 define('defaultLangage','fr');
-setlocale (LC_ALL, 'fr_FR.utf8','fra');
+setlocale (LC_TIME, 'fr_FR.utf8'); // use "locale -a" to get locate list of your system
 
 // folder who will contain html template files
 define ('template','template');
@@ -18,6 +18,9 @@ define('domain_name','mysite.com'); // without http !
 
 // mail domain, in case of send email plugin added who will read this address, default is your site domain
 define('mail_domain',domain_name);
+
+// declare jquery location, you can use [url] keyword in case of a local storage
+define('jqueryLocation','http://code.jquery.com/jquery-latest.min.js');
 
 // the default skeleton name, must be a .html file with the same name in *template*/*common_path*/skeleton/ folder
 define('defaultSkeletonName','normal');
@@ -42,7 +45,8 @@ define('defaultMeta','');
 
 // some various folder and files names
 define ('common_path','common'); // common folder for template engine
-define ('module_path','plugins'); // plugin folder
+define ('module_path','plugins'); // plugin dedicated folder
+define ('admin_path','admins'); // admin dedicated folder
 define ('design_path','constants.ini'); // constants filename
 
 // gz out compression enable or not

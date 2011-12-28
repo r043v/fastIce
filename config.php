@@ -12,20 +12,20 @@ define('redisServer','127.0.0.1');
 define('redisPrefix','mysite');
 
 // define website entry point, set to '/' if you put this file at the root, else set it to '/subfolder/'
-define('site_url','/mysite/');
+define('site_url','/fst/');
 
-define('domain_name','mysite.com'); // without http !
+define('domain_name','my-nice-site.com'); // without http !
 
 // mail domain, in case of send email plugin added who will read this address, default is your site domain
 define('mail_domain',domain_name);
 
-// declare jquery location, you can use [url] keyword in case of a local storage
-define('jqueryLocation','http://code.jquery.com/jquery-latest.min.js');
-
 // the default skeleton name, must be a .html file with the same name in *template*/*common_path*/skeleton/ folder
 define('defaultSkeletonName','normal');
 
-// the default page skeleton if the page dedicated one is not found, here is minimal html5 one with jquery loading.
+// declare jquery location, you can use [url] keyword in case of a local storage
+define('jqueryLocation','[url]js/jquery-1.7.1.min.js'); //'http://code.jquery.com/jquery-latest.min.js');
+
+// the default page skeleton if the page dedicated one is not found, here is minimal html5 one.
 define('defaultSkeleton','<!DOCTYPE html>
 <html lang="[lang]">
 	<head>	<meta charset="UTF-8" />

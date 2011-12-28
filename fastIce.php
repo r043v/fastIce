@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.8 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.8.1 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -28,6 +28,10 @@ $redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e)
 function getLang(){global $currentLangage;return $currentLangage;} // return the current used language
 function getUrlPath(){global $urlPath;return $urlPath;} // return current brut url args with '/', example : 'toto/titi/tata'
 function getPageName(){global $seedKey;return $seedKey;} // return current page name, example : 'index'
+function getUrlKey(){ global $currentLangage,$seedPath; return $currentLangage.':'.$seedPath; }
+function getFullUrl()	{	global $currentLangage,$seedPath; $out=''; if($currentLangage != defaultLangage) $out=$currentLangage.'/';
+				if($seedPath[0] == '/') return $out.substr($seedPath,1); return $out.$seedPath;
+			}
 
 // additional keywords for render *
 function addToRender($word,$txt) { global $renderInclude,$currentDesign; $renderInclude[$word] .= $txt; setDesignCache($currentDesign.'/:'.$word,$renderInclude[$word]); setDesignCache($currentDesign.'/:addition',true); }
@@ -70,16 +74,15 @@ function renderPage($url,$langage,$upath,$callback=false)
 		if($upath != '') $canonicalurl.=$upath.'/';
 	}
 
-	// check cache manual deletion, or automatic, if user is logged
-	if(isset($_GET['f5']) || isset($_SESSION['user']))
-	{ $redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
-	} else	if(isset($_GET['deleteCache'])) // complete cache destruction
+	if(isset($_SESSION['user'])) // logued
+	{	if(isset($_GET['F5'])) // complete cache destruction
 		{	$cache = $redis->keys(redisPrefix.':cache:*');
 			foreach($cache as $c) $redis->delete($c);
-		}
+		} else	$redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
+	} else	{ if(isset($_GET['f5'])) $redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath); }
 	
 	// get page cache
-	$design_cache = $redis->hgetall(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
+	if(empty($design_cache)) $design_cache = $redis->hgetall(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
 
 	// if page cache contain gzip entry, directly return it.
 	if(isset($design_cache['html']))
@@ -233,6 +236,11 @@ function setDesign($design,$content)
 	//die($designPath.'/'.$design);
 }
 
+function gsetDesign($design,$content)
+{	global $design_cache;
+	$design_cache[$design]=$content;
+}
+
 // put anything in cache, at the current page part tree *
 function setDesignCache($design,$content)
 {	global $noDesignCache,$designPath,$noDesignCacheUsed,$noDesignCacheAtAll,$globalCacheSave;
@@ -313,10 +321,10 @@ function getDesign($design)
 		ob_start();
 		global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$mdl;
 		if(function_exists($fn)) $fn($args);
-		else	{	$path = module_path.'/'.$mdl.'/'.$mdl.'.php';
+		else	{	$path = site_full_path.'/'.module_path.'/'.$mdl.'/'.$mdl.'.php';
 				if(is_file($path))
 				{	include($path); if(function_exists($fn)) $fn($args);
-				}
+				} else die('plugin '.$mdl.' not found ! path : '.$path);
 			}
 		$currentPlugin=$cplg;
 		$out = ob_get_contents(); ob_end_clean();
@@ -326,9 +334,9 @@ function getDesign($design)
 	// design is finally not found !
 	if(isUserPrivilege('show-error'))
 	{	// css error msg
-		addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
+		//addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info
-		return '<p>design <span class="red big">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
+		return '<p>design <span class="red big">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p>cache search : '.$designPath.'/'.$design.'</p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
 	} else return '';
 }
 
@@ -354,10 +362,8 @@ function callPlugin($plg,$args)
 	$currentPlugin=$cplg; return $out;
 }
 
-// will fill a design with some data, generic function, syntax is same as page part, but $ instead of §. some callback can be launch to manage data between get and draw. *
-function fillDesign($data, $design, $callback=false)
-{	global $noDesignCache; $save=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$save;
-	$keywords = array(); $offset = 0; $arrayin = array(); $out = '';
+function _fillDesign($data, $design, $callback=false)
+{	$keywords = array(); $offset = 0; $arrayin = array(); $out = '';
 
 	while(1)
 	{	$start = strpos($design,'$',$offset);
@@ -380,8 +386,8 @@ function fillDesign($data, $design, $callback=false)
 			{	$out .= str_replace($arrayin,array_map(function($w)use($callback,$dta,$n,$k)
 				{	if(isset($callback[$w]))
 					{	if(isset($dta[$w])) return $callback[$w]($dta[$w],$n,$k);
-						return $callback[$w]($dta,$n);
-					} else return '';
+						return $callback[$w]($dta,$n,$k);
+					} else { if(isset($dta[$w])) return $dta[$w]; return ''; }
 				},$keywords),$design); $n++;
 			}
 		}
@@ -393,6 +399,12 @@ function fillDesign($data, $design, $callback=false)
 	} else foreach($data as $k => $dta) $out .= str_replace($arrayin,array_map(function($w)use($dta,$k){if($w=='refkey')return $k; if(isset($dta[$w])) return $dta[$w]; return '';},$keywords),$design);
 
 	return $out;
+}
+
+// will fill a design with some data, generic function, syntax is same as page part, but $ instead of §. some callback can be launch to manage data between get and draw. *
+function fillDesign($data, $design, $callback=false)
+{	global $noDesignCache; $save=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$save;
+	return _fillDesign($data,$design,$callback);
 }
 
 // function designed to check user right, will be in plugin in future. *

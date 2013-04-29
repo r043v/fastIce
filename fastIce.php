@@ -1,7 +1,7 @@
 <?php
 /* *** ** * fastIce Framework core. \*
 ** *
-*	fastIce beta 0.8.1 © 2010~2011 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
+*	fastIce beta 0.8.31 © 2010~2013 noferi Mickaël/m2m - noferov@gmail.com - Some Rights Reserved.
 
 	Except where otherwise noted, this work is licensed under a Creative Commons Attribution 3.0 License, CC-by-nc-sa
 *	terms of licence CC-by-nc-sa are readable at : http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -11,8 +11,8 @@ include 'config.php';
 /* *********************.  ..**/
 
 // declare and initialize global framework vars *
-global $redis,$globalCacheSave,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache;
-$globalCacheSave=array();$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';
+global $redis,$globalCacheSave,$nofollow,$noDesignCache,$noDesignCacheAtAll,$noDesignCacheUsed,$renderInclude,$global_current_file,$designPath,$commonDesignPath,$currentDesign,$currentLangage,$urlPath,$seedKey,$currentPlugin,$design_cache,$userCanonical;
+$globalCacheSave=array();$nofollow=0;$noDesignCache=0;$noDesignCacheAtAll=0;$noDesignCacheUsed=0;$renderInclude=array();$global_current_file='';$designPath='';$commonDesignPath='';$currentPlugin='';$currentLangage=defaultLangage;$userCanonical=false;
 
 // define info not user dependant *
 define ('site_full_path',dirname(__FILE__));
@@ -21,8 +21,10 @@ define ('site_full_url','http://'.domain_name.site_url);
 // check php-redis is loaded into php api *
 if(!extension_loaded('redis')) die('please install php extension <a href="https://github.com/nicolasff/phpredis">php-redis</a>.');
 
+function debug($name){ global $redis; $redis->set('msg',$name); }
+
 // connect to redis-server *
-$redis = new Redis(); try { $redis->connect(redisServer); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage().'</i>'); }
+$redis = new Redis(); try { if(false === $redis->connect(redisServer)) die('unable to reach redis.'); } catch (Exception $e) { die('please check that redis server at "'.redisServer.'" is up ! : <i>'.$e->getMessage().'</i>'); }
 
 // function to retrieve page and url info *
 function getLang(){global $currentLangage;return $currentLangage;} // return the current used language
@@ -41,6 +43,8 @@ global $renderWords; $renderWords = array('head','js','jquery','title','meta','s
 
 function addToHead($t){addToRender('head',$t);}$renderInclude['head']='';function addToJs($t){addToRender('js',$t);}$renderInclude['js']='';function addToJquery($t){addToRender('jquery',$t);}$renderInclude['jquery']='';function addToStyle($t){addToRender('style',$t);}$renderInclude['style']='';function addToBody($t){addToRender('body',$t);}$renderInclude['body']='';
 function addToTitle($t){addToRender('title',$t);}function setTitle($t){setRender('title',$t);}$renderInclude['title']='';function addToMeta($t){addToRender('meta',$t);}function setMeta($t){setRender('meta',$t);}$renderInclude['meta']='';function addToKeywords($t){addToRender('keywords',$t);}function setKeywords($t){setRender('keywords',$t);}$renderInclude['keywords']='';function addToDescription($t){addToRender('description',$t);}function setDescription($t){setRender('description',$t);}$renderInclude['description']='';
+function setCanonical($c){ global $userCanonical,$currentLangage;$userCanonical=site_full_url.$currentLangage.$c; }
+function getCanonical(){ global $userCanonical; return $userCanonical; }
 
 function addToRenderOnce($word,$id,$txt)
 {	static $filesinc, $loaded = 0;
@@ -62,10 +66,12 @@ function insertJs($path){addToRenderOnce('js',$path,file_get_contents($path));}
 function insertCss($path){addToRenderOnce('style',$path,file_get_contents($path));}
 
 // master function, will return the complete page ready to be echo *
-function renderPage($url,$langage,$upath,$callback=false)
-{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey, $globalCacheSave, $noDesignCacheAtAll; $noDesignCacheAtAll;
+function renderPage($url,$langage,$upath,$callback=false,$skeleton=defaultSkeletonName,$json=false)
+{	global $renderInclude, $design_cache, $canonicalurl, $currentLangage, $noDesignCacheUsed, $urlPath, $designPath, $commonDesignPath, $global_current_file, $need_fix_name, $redis, $seedPath, $seedKey, $globalCacheSave, $noDesignCacheAtAll, $userCanonical;
 	$currentLangage=$langage; $urlPath=$upath; $designPath=$url; $commonDesignPath=''; $seedPath=$urlPath.'/'.$url; $seedKey=$url; // fill global vars
 
+	$cachekey = redisPrefix.':cache:'.$skeleton.':'.$currentLangage.':'.$seedPath;
+	
 	if($langage!=defaultLangage) // generate canonical url
 	{	$canonicalurl=site_full_url.$langage.'/';
 		if($upath != '') $canonicalurl.=$upath.'/';
@@ -74,41 +80,32 @@ function renderPage($url,$langage,$upath,$callback=false)
 		if($upath != '') $canonicalurl.=$upath.'/';
 	}
 
-	if(isset($_SESSION['user'])) // logued
-	{	if(isset($_GET['F5'])) // complete cache destruction
-		{	$cache = $redis->keys(redisPrefix.':cache:*');
-			foreach($cache as $c) $redis->delete($c);
-		} else	$redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
-	} else	{ if(isset($_GET['f5'])) $redis->delete(redisPrefix.':cache:'.$currentLangage.':'.$seedPath); }
-	
 	// get page cache
-	if(empty($design_cache)) $design_cache = $redis->hgetall(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
+	if(empty($design_cache))
+	{	$r = $redis->multi(Redis::PIPELINE)->hgetall($cachekey)->expire($cachekey,cacheTTL);
+		$cache = $r->exec()[0];
 
+		$design_cache = $cache;
+	}
+	
+	// check cache content of .ini entry for skeleton name, if not set, define at default.
+	if(!isset($design_cache[':skeleton'])) $design_cache[':skeleton'] = $skeleton;
+	
 	// if page cache contain gzip entry, directly return it.
 	if(isset($design_cache['html']))
 	{	if(isset($design_cache['gzip'])) { header("X-Compression: gzip"); header("Content-Encoding: gzip"); }
 		return $design_cache['html'];
 	}
 
-	// if page specific .ini file was never loaded, parse it and save content into cache.
-	if(!isset($design_cache[':loaded'])) // redis page info not set
-	{	$page_opt = array('loaded'=>1);
-		$path = template.'/'.$url.'/'.$url.'.ini';
-		if(is_file($path)) $page_opt = array_merge(parse_ini_file($path),$page_opt);
-		else $page_opt = array_merge($redis->hgetAll(redisPrefix.':page:'.$url.':ini'),$page_opt);
-		$globalCacheSave = array(); foreach($page_opt as $name=>$value) $globalCacheSave[':'.$name] = $value;
-		$design_cache = array_merge($design_cache,$globalCacheSave);
-	}
-
-	// check cache content of .ini entry for skeleton name, if not set, define at default.
-	if(!isset($design_cache[':skeleton'])) $design_cache[':skeleton'] = defaultSkeletonName;
-
 	// check page skeleton was loaded, else, load and cache it.
 	if(!isset($design_cache[':sk']))
-	{	$path = template.'/'.common_path.'/skeleton/'.$design_cache[':skeleton'].'.html';
+	{	$path = site_full_path.'/'.template.'/'.common_path.'/skeleton/'.$design_cache[':skeleton'].'.html';
 		if(is_file($path))
-		{	$page = file_get_contents($path); $redis->hset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,':sk',$page);
-		} else	$page = defaultSkeleton;
+		{	$page = file_get_contents($path); $redis->hset($cachekey,':sk',$page);
+		} else {
+			//die(site_full_path.' => '.getcwd().' => '.$path);
+			if($skeleton !== false) $page = $skeleton; else $page = defaultSkeleton;
+		}
 	} else $page = $design_cache[':sk'];
 
 	// launch page part parsing, seed is skeleton
@@ -117,7 +114,7 @@ function renderPage($url,$langage,$upath,$callback=false)
 	// if anywhere parsing was need to let page part as this, replace parse maker with page part one.
 	if($need_fix_name) $page = str_replace('[$$]','§', $page);
 
-	if($callback !== false) $callback(&$page); // any last chance callback ?
+	if($callback !== false) $callback($page); // any last chance callback ?
 
 	// verifies and assign page final info
 	if(empty($renderInclude['title']))
@@ -144,6 +141,8 @@ function renderPage($url,$langage,$upath,$callback=false)
 		else	$renderInclude['meta'] = defaultMeta;
 	}
 
+	if($userCanonical === false) $canonical = $canonicalurl.$url; else $canonical = $userCanonical;
+	
 	// generate head insertion
 	$renderInclude['meta'] .= '<title>'.$renderInclude['title'].'</title><meta name="keywords" content="'.$renderInclude['keywords'].'" /><meta name="description" content="'.$renderInclude['description'].'" /><meta name="generator" content="fastIce" /><link rel="canonical" href="'.$canonicalurl.$url.'" />';
 	$renderInclude['head']  = $renderInclude['meta'].'<script type="text/javascript" src="'.jqueryLocation.'"></script>'.$renderInclude['head'].'[js]';
@@ -152,32 +151,37 @@ function renderPage($url,$langage,$upath,$callback=false)
 	// generate complete brut page, depend on js is used or not
 	if(empty($renderInclude['js']) && empty($renderInclude['jquery'])) $renderInclude['js']='';  // js free
 	 else // js used
-	{	$renderInclude['js'] = '<script type="text/javascript">'.$renderInclude['js'].'$(document).ready(function(){'.$renderInclude['jquery'].'});</script>';
+	{	if(!$json) $renderInclude['js'] = '<script type="text/javascript">'.$renderInclude['js'].'$(document).ready(function(){'.$renderInclude['jquery'].'});</script>';
 		if(!$noDesignCacheUsed && extension_loaded('jsmin')) $renderInclude['js'] = jsmin($renderInclude['js']);
 	}
+	
+	$completePage = str_replace(array('[head]','[body]','[js]','[url]','[lang]','[title]'),array($renderInclude['head'],$renderInclude['body'],$renderInclude['js'],site_url,$currentLangage,$renderInclude['title']),$page);
 
-	$completePage = str_replace(array('[head]','[body]','[js]','[url]','[lang]'),array($renderInclude['head'],$renderInclude['body'],$renderInclude['js'],site_url,$currentLangage),$page);
-
+	if($json)
+	{	$renderInclude['html'] = $completePage;
+		$completePage = json_encode($renderInclude);
+	}
+	
 	if(!$noDesignCacheAtAll)
 	{	if(!$noDesignCacheUsed) // the page is fully in cache
 		{	global $redis,$seedPath,$currentLangage;
-			$key = redisPrefix.':cache:'.$currentLangage.':'.$seedPath; // generate redis page cache key name
-			$redis->multi(Redis::PIPELINE)->del($key); // delete old key
+			$redis->multi(Redis::PIPELINE)->del($cachekey); // delete old key
 
 			// if compression enabled, gz the output at full compression and add gz flag in the page cache.
 			if(enable_gz_compression)
 			{	$completePage =  gzencode($completePage,9);
-				$redis->hset($key,'gzip',1);
+				$redis->hset($cachekey,'gzip',1);
 				header("X-Compression: gzip"); header("Content-Encoding: gzip"); // send gz header
 			}
 
 			// global page cache save and return the gz or html data.
-			$redis->hset($key,'html',$completePage)->exec(); return $completePage;
+			$redis->hset($cachekey,'html',$completePage)->expire($cachekey,cacheTTL)->exec();
+			return $completePage;
 		}
 
 		// save all the page caches in redis, in one request
-		if(!empty($globalCacheSave)) $redis->hMset(redisPrefix.':cache:'.$currentLangage.':'.$seedPath,$globalCacheSave);
-	} else $redis->del(redisPrefix.':cache:'.$currentLangage.':'.$seedPath);
+		if(!empty($globalCacheSave)){ $redis->multi(Redis::PIPELINE)->hMset($cachekey,$globalCacheSave)->expire($cachekey,cacheTTL)->exec(); }
+	} else { $redis->del($cachekey); }
 
 	if(enable_gz_compression && gz_compression) // out gz compression is forced
 	{	$completePage = gzencode($completePage,gz_compression);
@@ -332,12 +336,12 @@ function getDesign($design)
 	}
 
 	// design is finally not found !
-	if(isUserPrivilege('show-error'))
+	//if(isUserPrivilege('show-error'))
 	{	// css error msg
 		//addToRenderOnce('style','span.red{color:red;} span.big{font-style:italic;font-weight:bold}');
 		// generate html to draw some page info
 		return '<p>design <span class="red big">'.$design.'</span> not found!</p><p>page : <span class="big">'.getPageName().'</span> language : <span class="big">'.getLang().'</span></p><p>cache search : '.$designPath.'/'.$design.'</p><p><span class="big">/</span> for file search is relative at <span class="big">'.site_full_path.'</span></br><br/>physical file possible path, ordered by engine search priority :</br><ul><li>'.site_url.template.'/'.$designPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.$designPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.$commonDesignPath.'/'.$design.'.php'.'</li><li>'.site_url.common_path.$commonDesignPath.'/'.$currentLangage.'.'.$design.'.php<li>'.site_url.common_path.$commonDesignPath.'/'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.template.'/'.common_path.'/'.$design.'.php</li><li>'.site_url.common_path.'/'.$currentLangage.'.'.$design.'.php</li><li>'.site_url.common_path.'/'.$design.'.php</li></ul><br/>constant files url :</br><ul><li>'.site_url.template.'/'.$seedKey.'/'.design_path.'</li><li>'.site_url.template.'/'.common_path.'/'.design_path.'</li></ul></p>';
-	} else return '';
+	}// else return '';
 }
 
 // get current plugin name, designed to be used from plugin *
@@ -348,10 +352,10 @@ function getCurrentPluginUrl(){ global $currentPlugin; return site_url.module_pa
 
 // will load a plugin if this one is not loaded *
 function needPlugin($plg)
-{	$fn = 'fn_'.$plg;
+{	$fn = 'fn_'.$plg; global $currentPlugin; $cplg=$currentPlugin; $currentPlugin=$plg;
 	if(function_exists($fn)) return true;
 	$path = site_full_path.'/'.module_path.'/'.$plg.'/'.$plg.'.php';
-	if(is_file($path)) { include($path); return true; } return false;
+	if(is_file($path)) { include($path); $currentPlugin=$cplg; return true; } $currentPlugin=$cplg; return false;
 }
 
 // launch a plugin *
@@ -405,6 +409,16 @@ function _fillDesign($data, $design, $callback=false)
 function fillDesign($data, $design, $callback=false)
 {	global $noDesignCache; $save=$noDesignCache; $noDesignCache=0; $design=getDesign($design); $noDesignCache=$save;
 	return _fillDesign($data,$design,$callback);
+}
+
+function filterFillDesign($data, $design, $callback=false,$filter=false)
+{	if($filter === false)
+		return _fillDesign($data,$design,$callback);
+	return	_fillDesign(array_filter($data,$filter),$design,$callback);
+}
+
+function getFillTemplate($path)
+{	return file_get_contents(site_full_path.'/'.template.'/common/skeleton/template/'.$path.'.txt');
 }
 
 // function designed to check user right, will be in plugin in future. *

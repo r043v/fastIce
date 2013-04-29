@@ -9,12 +9,12 @@ define ('template','template');
 
 // redis server address and dedicated key prefix
 define('redisServer','127.0.0.1');
-define('redisPrefix','mysite');
+define('redisPrefix','myprefix');
 
 // define website entry point, set to '/' if you put this file at the root, else set it to '/subfolder/'
-define('site_url','/fst/');
+define('site_url','/');
 
-define('domain_name','my-nice-site.com'); // without http !
+define('domain_name','domain.net'); // without http !
 
 // mail domain, in case of send email plugin added who will read this address, default is your site domain
 define('mail_domain',domain_name);
@@ -23,7 +23,7 @@ define('mail_domain',domain_name);
 define('defaultSkeletonName','normal');
 
 // declare jquery location, you can use [url] keyword in case of a local storage
-define('jqueryLocation','[url]js/jquery-1.7.1.min.js'); //'http://code.jquery.com/jquery-latest.min.js');
+define('jqueryLocation','[url]js/jquery.min.js');//'http://code.jquery.com/jquery-latest.min.js');
 
 // the default page skeleton if the page dedicated one is not found, here is minimal html5 one.
 define('defaultSkeleton','<!DOCTYPE html>
@@ -38,9 +38,9 @@ define('defaultSkeleton','<!DOCTYPE html>
 </html>');
 
 // default info for meta and page title
-define('defaultTitle','hello i\'m the title !');
-define('defaultKeywords','key,words');
-define('defaultDescription','a nice description :)');
+define('defaultTitle','faire-part mariage');
+define('defaultKeywords','');
+define('defaultDescription','fpm!');
 define('defaultMeta','');
 
 // some various folder and files names
@@ -54,5 +54,8 @@ define ('enable_gz_compression',true);
 
 // gz compression output for dynamic pages : 0 disable, else is compression power
 define ('gz_compression',1);
+
+// cache no charge validity (in millisecond)
+define ('cacheTTL',10);
 
 ?>

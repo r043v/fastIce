@@ -38,9 +38,9 @@ define('defaultSkeleton','<!DOCTYPE html>
 </html>');
 
 // default info for meta and page title
-define('defaultTitle','faire-part mariage');
-define('defaultKeywords','');
-define('defaultDescription','fpm!');
+define('defaultTitle','hello i\'m the title !');
+define('defaultKeywords','key,words');
+define('defaultDescription','a nice description :)');
 define('defaultMeta','');
 
 // some various folder and files names
@@ -55,7 +55,7 @@ define ('enable_gz_compression',true);
 // gz compression output for dynamic pages : 0 disable, else is compression power
 define ('gz_compression',1);
 
-// cache no charge validity (in millisecond)
+// cache no charge validity (in second)
 define ('cacheTTL',10);
 
 ?>
